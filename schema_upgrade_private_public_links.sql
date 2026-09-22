@@ -1,0 +1,3 @@
+-- Retired migration. Configurable sharing has been removed.
+-- Run schema_remove_user_sharing.sql to preserve public tokens while deleting
+-- legacy sharing tables, permissions, and link-status columns.
