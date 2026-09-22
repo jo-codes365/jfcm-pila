@@ -1,5 +1,0 @@
-[phases.setup]
-aptPkgs = ["...", "fontconfig", "fonts-dejavu-core", "fonts-liberation2", "fonts-crosextra-carlito", "fonts-crosextra-caladea", "fonts-noto-core", "fonts-noto-cjk", "fonts-noto-color-emoji", "fonts-freefont-ttf", "fonts-urw-base35", "libreoffice"]
-
-[variables]
-LIBREOFFICE_BINARY = "libreoffice"
