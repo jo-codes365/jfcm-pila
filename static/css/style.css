@@ -2680,6 +2680,9 @@ table tbody tr:nth-child(even) {
   color: #59665e;
   font-size: .82rem;
 }
+.legal-workspace-header {
+  min-height: 71.6px;
+}
 .workspace-header {
   position: sticky;
   top: 0;
