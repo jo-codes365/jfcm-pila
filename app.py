@@ -1765,8 +1765,8 @@ def utility_processor():
 
 @app.route("/")
 def index():
-    # Keep the landing route session-aware while the dashboard remains the
-    # single renderer for authenticated and public workspaces.
+    # Keep authenticated visitors in their private workspace while giving
+    # anonymous visitors a public-only landing page.
     if "user_id" in session:
         if session_is_expired():
             session.clear()
@@ -1774,7 +1774,42 @@ def index():
         else:
             touch_authenticated_session()
             purge_expired_trash(session["user_id"])
-    return redirect(url_for("dashboard"))
+            return redirect(url_for("dashboard"))
+
+    cursor = get_db().cursor(dictionary=True)
+    try:
+        public_event_where = "is_deleted = FALSE AND share_token IS NOT NULL AND share_token <> ''"
+        cursor.execute(
+            "SELECT id, name, event_date, event_type, share_token, created_at FROM events "
+            f"WHERE {public_event_where} ORDER BY created_at DESC, event_date DESC, name LIMIT 1"
+        )
+        latest_public_event = cursor.fetchone()
+        cursor.execute(
+            "SELECT id, name, event_date, event_type, share_token FROM events "
+            f"WHERE {public_event_where} AND event_date >= CURDATE() ORDER BY event_date, name LIMIT 4"
+        )
+        upcoming_public_events = cursor.fetchall()
+        cursor.execute(
+            "SELECT id, original_filename, mime_type, file_size, share_token, uploaded_at FROM files "
+            "WHERE is_deleted = FALSE AND event_id IS NULL AND folder_id IS NULL "
+            "AND share_token IS NOT NULL AND share_token <> '' ORDER BY uploaded_at DESC LIMIT 4"
+        )
+        recent_public_files = cursor.fetchall()
+    except MySQLError:
+        app.logger.exception("Public Access landing page database error")
+        abort(500)
+    finally:
+        cursor.close()
+
+    # Announcements have no public source in the current schema. Keep the
+    # template hook data-driven so it remains absent until that source exists.
+    return render_template(
+        "public_landing.html",
+        latest_public_event=latest_public_event,
+        upcoming_public_events=upcoming_public_events,
+        recent_public_files=recent_public_files,
+        public_announcements=[],
+    )
 
 
 @app.get("/privacy")
