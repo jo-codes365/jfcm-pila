@@ -988,8 +988,9 @@ document.addEventListener("DOMContentLoaded", function () {
   var resultCount = document.getElementById("result-count");
   var noResults = document.getElementById("no-search-results");
   var sectionedFolderView = document.querySelector("[data-sectioned-folder-view]");
+  var dateGroupedFileList = document.querySelector("[data-date-grouped-file-list]");
   var fileTableWrap = sectionedFolderView ? null : document.querySelector(".file-workspace .table-wrap");
-  var fileRows = Array.from(document.querySelectorAll(sectionedFolderView ? ".workspace-item" : ".file-table tbody tr"));
+  var fileRows = Array.from(document.querySelectorAll(sectionedFolderView ? ".workspace-item" : dateGroupedFileList ? ".file-table tbody tr.workspace-item" : ".file-table tbody tr"));
   var sortButton = document.getElementById("sort-button");
   var sortDirectionButton = document.getElementById("sort-direction-button");
   var sortMenu = document.getElementById("sort-menu");
@@ -1641,7 +1642,7 @@ document.addEventListener("DOMContentLoaded", function () {
       sortDirectionButton.setAttribute("title", isAscending ? "Sort ascending" : "Sort descending");
     }
     var multiplier = direction === "desc" ? -1 : 1;
-    fileRows.sort(function (firstRow, secondRow) {
+    function compareRows(firstRow, secondRow) {
       var workspace = fileTableBody ? fileTableBody.closest(".file-table").dataset.workspace : "files";
       if (workspace !== "recent" && firstRow.dataset.kind !== secondRow.dataset.kind) {
         return firstRow.dataset.kind === "folder" ? -1 : 1;
@@ -1661,8 +1662,15 @@ document.addEventListener("DOMContentLoaded", function () {
         secondValue = new Date(secondRow.dataset.modifiedDate || 0).getTime();
       }
       return (firstValue - secondValue) * multiplier;
-    });
-    fileRows.forEach(function (row) { fileTableBody.appendChild(row); });
+    }
+    if (dateGroupedFileList) {
+      dateGroupedFileList.querySelectorAll("tbody[data-date-group]").forEach(function (group) {
+        Array.from(group.querySelectorAll("tr.workspace-item")).sort(compareRows).forEach(function (row) { group.appendChild(row); });
+      });
+    } else {
+      fileRows.sort(compareRows);
+      fileRows.forEach(function (row) { fileTableBody.appendChild(row); });
+    }
     updateFilenameExtensions();
     if (typeof filterState !== "undefined") syncWorkspaceState();
   }
@@ -1829,6 +1837,12 @@ document.addEventListener("DOMContentLoaded", function () {
     if (resultCount) resultCount.textContent = shown + " file" + (shown === 1 ? "" : "s");
     if (noResults) noResults.hidden = shown !== 0;
     if (fileTableWrap) fileTableWrap.hidden = shown === 0;
+    if (dateGroupedFileList) {
+      dateGroupedFileList.querySelectorAll("tbody[data-date-group]").forEach(function (group) {
+        var groupRows = Array.from(group.querySelectorAll("tr.workspace-item"));
+        group.hidden = groupRows.every(function (row) { return row.hidden; });
+      });
+    }
     if (sectionedFolderView) {
       sectionedFolderView.querySelectorAll("[data-folder-section]").forEach(function (sectionElement) {
         var sectionItems = Array.from(sectionElement.querySelectorAll(".workspace-item"));
@@ -1855,9 +1869,10 @@ document.addEventListener("DOMContentLoaded", function () {
     var currentBreadcrumbs = document.getElementById("workspace-breadcrumbs");
     if (nextBreadcrumbs && currentBreadcrumbs) currentBreadcrumbs.replaceWith(nextBreadcrumbs);
     sectionedFolderView = nextResults.querySelector("[data-sectioned-folder-view]");
+    dateGroupedFileList = nextResults.querySelector("[data-date-grouped-file-list]");
     fileTableWrap = sectionedFolderView ? null : nextResults.querySelector(".table-wrap");
     noResults = nextResults.querySelector("#no-search-results");
-    fileRows = Array.from(nextResults.querySelectorAll(sectionedFolderView ? ".workspace-item" : ".file-table tbody tr"));
+    fileRows = Array.from(nextResults.querySelectorAll(sectionedFolderView ? ".workspace-item" : dateGroupedFileList ? ".file-table tbody tr.workspace-item" : ".file-table tbody tr"));
     fileTableBody = nextResults.querySelector(".file-table tbody");
     sortButton = nextResults.querySelector("#sort-button");
     sortDirectionButton = nextResults.querySelector("#sort-direction-button");

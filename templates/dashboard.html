@@ -386,10 +386,6 @@
                     <h3><img class="event-icon-inline" src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""> {{ display_name(event.name) }}</h3>
                     <p>Created {{ format_datetime(event.created_at) }} · {{ display_item_size('event', event.size) }}</p>
                   </div>
-                  <div class="date-workspace-event-actions">
-                    <a class="button secondary" href="{{ url_for('dashboard', section='events', event=event.id) }}"><i class="bi bi-box-arrow-up-right"></i> Open Event</a>
-                    <a class="button primary" href="{{ url_for('dashboard', section='events', event=event.id) }}"><i class="bi bi-upload"></i> Add Files to Event</a>
-                  </div>
                 </article>
                 {% endfor %}
               </div>
@@ -409,7 +405,40 @@
               <button id="mobile-select-button" class="button secondary mobile-select-button" type="button" aria-pressed="false"><i class="bi bi-check2-square" aria-hidden="true"></i> Select</button>
             </div>
             {% endif %}
-            {% if is_sectioned_content_workspace %}
+            {% if date_grouped_file_list|default([]) %}
+            <div class="table-wrap" data-date-grouped-file-list="true">
+              <table class="file-table" data-workspace="{{ section }}" data-date-grouped-file-list="true" data-public-workspace="{{ 'true' if is_public_workspace else 'false' }}">
+                <thead>
+                  <tr>
+                    {% if not is_public_workspace %}<th class="selection-cell"><input id="select-all" type="checkbox" aria-label="Select all"></th>{% endif %}
+                    <th>Name</th>
+                    <th class="column-type">Type</th>
+                    <th class="column-size">Size</th>
+                    <th class="column-modified">Date</th>
+                    {% if is_public_workspace %}
+                    <th>Actions</th>
+                    {% else %}<th>
+                      <div class="sort-wrap">
+                        <button id="sort-button" class="sort-button" type="button" aria-expanded="false" aria-controls="sort-menu">Sort by</button>
+                        <button id="sort-direction-button" class="sort-direction-button" type="button" aria-label="Sort ascending" title="Sort ascending"><i class="bi bi-sort-up" aria-hidden="true"></i></button>
+                        <div id="sort-menu" class="sort-menu" hidden>
+                          <button type="button" data-sort-field="date"><i class="bi bi-calendar-date" aria-hidden="true"></i> Date</button>
+                          <button type="button" data-sort-field="name"><i class="bi bi-card-text" aria-hidden="true"></i> Name</button>
+                          <button type="button" data-sort-field="size"><i class="bi bi-sd-card" aria-hidden="true"></i> Size</button>
+                        </div>
+                      </div>
+                    </th>{% endif %}
+                  </tr>
+                </thead>
+                {% for group_label, group_items in date_grouped_file_list %}
+                <tbody class="date-group" data-date-group>
+                  <tr class="date-group-heading"><th colspan="{{ 5 if is_public_workspace else 6 }}" scope="rowgroup">{{ group_label }}</th></tr>
+                  {% for item in group_items %}{{ dashboard_items.item_row(item) }}{% endfor %}
+                </tbody>
+                {% endfor %}
+              </table>
+            </div>
+            {% elif is_sectioned_content_workspace %}
             {% set folder_groups = namespace(folders=false, presentations=false, images=false, videos=false, documents=false, others=false) %}
             {% for item in items %}
               {% set item_extension = item.name.rsplit('.', 1)[-1]|lower if '.' in item.name else '' %}

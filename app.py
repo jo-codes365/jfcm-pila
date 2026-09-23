@@ -757,6 +757,48 @@ def sunday_first_month_weeks(year, month):
     return calendar_module.Calendar(firstweekday=calendar_module.SUNDAY).monthdayscalendar(year, month)
 
 
+DATE_GROUP_LABELS = (
+    "Today",
+    "Last week",
+    "Earlier this month",
+    "Last month",
+    "Earlier this year",
+    "Last year",
+    "Older",
+)
+
+
+def file_date_group(item_date, today=None):
+    """Return the relative date section for an existing workspace item date."""
+    today = today or date.today()
+    if isinstance(item_date, datetime):
+        item_date = item_date.date()
+    if not isinstance(item_date, date):
+        return "Older"
+    if item_date == today:
+        return "Today"
+    if today - timedelta(days=7) <= item_date < today:
+        return "Last week"
+    if item_date.year == today.year and item_date.month == today.month:
+        return "Earlier this month"
+    previous_month = today.replace(day=1) - timedelta(days=1)
+    if item_date.year == previous_month.year and item_date.month == previous_month.month:
+        return "Last month"
+    if item_date.year == today.year:
+        return "Earlier this year"
+    if item_date.year == today.year - 1:
+        return "Last year"
+    return "Older"
+
+
+def group_file_list_by_date(items, today=None):
+    """Keep the workspace ordering while collecting files and folders by date."""
+    grouped_items = {label: [] for label in DATE_GROUP_LABELS}
+    for item in items:
+        grouped_items[file_date_group(item.get("date"), today=today)].append(item)
+    return [(label, grouped_items[label]) for label in DATE_GROUP_LABELS if grouped_items[label]]
+
+
 def build_events_calendar_context(year=None, month=None, url_builder=None):
     year, month = normalized_calendar_month(year, month)
     cursor = get_db().cursor(dictionary=True)
@@ -2079,6 +2121,7 @@ def dashboard():
             is_shared_workspace=False,
             workspace_can_edit=True,
             share_context=None,
+            date_grouped_file_list=group_file_list_by_date(items) if section == "files" and folder_id is None and not search_query and not deleted else [],
             **calendar_context,
         )
     except MySQLError:
@@ -2407,6 +2450,7 @@ def public_dashboard():
         month_name=calendar_module.month_name[date.today().month], year=date.today().year, month=date.today().month,
         weeks=sunday_first_month_weeks(date.today().year, date.today().month), events_by_day={}, calendar_day_urls={},
         calendar_previous_url="", calendar_next_url="", show_calendar_back_link=False,
+        date_grouped_file_list=group_file_list_by_date(items),
     )
 
 

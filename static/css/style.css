@@ -3647,6 +3647,18 @@ button {
 .file-table tbody tr:last-child td {
   border-bottom: 0;
 }
+.file-table .date-group-heading th {
+  padding: 18px 10px 8px;
+  border: 0;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: .9rem;
+  font-weight: 700;
+  text-align: left;
+}
+.file-table tbody.date-group:first-of-type .date-group-heading th {
+  padding-top: 4px;
+}
 .file-name a {
   display: flex;
   align-items: center;
@@ -4706,6 +4718,17 @@ hr {
         border-bottom: 0;
     }
 
+    .file-table tbody .date-group-heading {
+        display: block;
+        padding: 14px 0 4px;
+        border: 0;
+    }
+
+    .file-table .date-group-heading th {
+        display: block;
+        padding: 0;
+    }
+
     .file-table tbody td {
         display: none;
         width: auto !important;
@@ -4771,6 +4794,14 @@ hr {
 
     .file-workspace.mobile-select-mode .file-name {
         padding-left: 30px;
+    }
+
+    /* Keep the filename text clear of the selection control, while letting
+       its icon remain flush with the filename-column edge. */
+    .file-workspace.mobile-select-mode .file-name .file-type-icon,
+    .file-workspace.mobile-select-mode .file-name .event-icon-inline {
+        position: relative;
+        left: -30px;
     }
 
     html {
