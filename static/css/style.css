@@ -2643,7 +2643,7 @@ table tbody tr:nth-child(even) {
   width: min(100% - 40px, 1250px);
   margin: 0 auto;
   overflow: hidden;
-  padding-top: 40px;
+  padding-top: 24px;
   /* border-radius: 39px 0 0 0; */
 }
 .workspace-title {
