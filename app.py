@@ -2349,17 +2349,23 @@ def public_events():
 
 
 def public_dashboard():
-    """Render active resources with public tokens in a read-only workspace."""
+    """Render the root of the public Library without flattening its hierarchy."""
     cursor = get_db().cursor(dictionary=True)
     try:
         cursor.execute(
-            "SELECT id, name, share_token, created_at FROM folders "
-            "WHERE is_deleted = FALSE AND event_id IS NULL AND share_token IS NOT NULL ORDER BY created_at DESC"
+            "SELECT id, user_id, name, parent_id, event_id, share_token, created_at, accessed_at, is_starred "
+            "FROM folders WHERE is_deleted = FALSE AND event_id IS NULL AND parent_id IS NULL "
+            "AND share_token IS NOT NULL AND share_token <> '' ORDER BY created_at DESC"
         )
         folders = cursor.fetchall()
+        sizes = folder_sizes(cursor, [folder["id"] for folder in folders], include_deleted=False)
+        for folder in folders:
+            folder["size"] = sizes.get(folder["id"], 0)
         cursor.execute(
-            "SELECT id, original_filename, file_size, mime_type, share_token, uploaded_at FROM files "
-            "WHERE is_deleted = FALSE AND share_token IS NOT NULL ORDER BY uploaded_at DESC"
+            "SELECT id, user_id, original_filename, folder_id, event_id, file_size, mime_type, share_token, "
+            "uploaded_at, accessed_at, is_starred FROM files "
+            "WHERE is_deleted = FALSE AND event_id IS NULL AND folder_id IS NULL "
+            "AND share_token IS NOT NULL AND share_token <> '' ORDER BY uploaded_at DESC"
         )
         files = cursor.fetchall()
     except MySQLError:
@@ -2369,11 +2375,10 @@ def public_dashboard():
         cursor.close()
 
     items = (
-        [{"kind": "folder", "name": item["name"], "parent_id": None, "size": 0, "file_size": 0,
-          "mime_type": "Folder", "location": "Public Files", "date": item["created_at"], "accessed_at": None,
-          "is_starred": False, **item} for item in folders]
-        + [{"kind": "file", "name": item["original_filename"], "parent_id": None, "folder_id": None,
-            "location": "Public Files", "date": item["uploaded_at"], "accessed_at": None, "is_starred": False,
+        [{"kind": "folder", "name": item["name"], "file_size": 0, "mime_type": "Folder",
+          "location": "Public Files", "date": item["created_at"], **item} for item in folders]
+        + [{"kind": "file", "name": item["original_filename"], "parent_id": item["folder_id"],
+            "location": "Public Files", "date": item["uploaded_at"],
             **item} for item in files]
     )
     return render_template(
@@ -3712,10 +3717,16 @@ def public_folder(share_token):
     breadcrumbs = []
     node = current_folder
     while node:
+        if node.get("user_id") != share_context["owner_id"] or node.get("event_id") is not None:
+            abort(404)
         breadcrumbs.append(node)
-        if node["id"] == share_context["item_id"] or not node["parent_id"]:
+        if node["id"] == share_context["item_id"]:
             break
+        if not node["parent_id"]:
+            abort(404)
         node = folder_record(node["parent_id"])
+    else:
+        abort(404)
     breadcrumbs.reverse()
 
     cursor = get_db().cursor(dictionary=True)
