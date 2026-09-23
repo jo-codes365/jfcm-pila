@@ -1902,7 +1902,9 @@ table tbody tr:nth-child(even) {
   padding: 0 0 18px;
   border-bottom: 1px solid #dce6df;
 }
-.settings-workspace-content { display: block; min-height: 0; height: 100%; overflow-y: auto; overflow-x: hidden; padding-bottom: 24px; }
+.settings-workspace-header { min-height: 42px; }
+.settings-workspace-body { overflow-x: hidden; overflow-y: auto; }
+.settings-workspace-content { display: block; min-height: 100%; height: auto; overflow: visible; padding-bottom: 24px; }
 .settings-page { width: min(100%, 760px); margin: 0 auto 48px; }
 .settings-workspace-content .settings-section { overflow-wrap: anywhere; }
 .settings-workspace-content .settings-intro h1 { font-size: 1.5rem; }
@@ -2236,7 +2238,7 @@ table tbody tr:nth-child(even) {
   flex: 0 0 auto;
   display: grid;
   gap: 14px;
-  margin: 8px 20px 0 0;
+  margin: 0 18px 12px 0;
 }
 .public-workspace-hero[hidden] {
   display: none;
@@ -4858,14 +4860,14 @@ hr {
   }
   .workspace-content {
     width: min(100% - 28px, 1180px);
-    padding-top: 26px;
+    padding-top: 15px;
   }
   .workspace-title {
     align-items: flex-start;
     margin-bottom: 20px;
   }
   .workspace-title h1 {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
   }
   .upload-drawer {
     padding: 12px;
@@ -4934,6 +4936,10 @@ hr {
 
 /* Responsive font sizes for smaller screens */
 @media (max-width: 480px) {
+  .breadspan {
+    font-size: 0.67rem;
+    margin-bottom: 4px;
+  }
   .settings-shell { padding: 16px 14px 32px; }
   .settings-header { padding-bottom: 14px; }
   .settings-header .brand { font-size: 1rem; }
@@ -5044,6 +5050,10 @@ hr {
     }
 
     .workspace-title h1.public-files-workspace-title {
+        display: block;
+    }
+
+    .workspace-title .title-filter h1.public-files-workspace-title ~ .vr {
         display: block;
     }
 

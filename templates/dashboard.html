@@ -4,91 +4,7 @@
 {% import "_dashboard_item_macros.html" as dashboard_items with context %}
 {% set is_sectioned_content_workspace = (current_folder or current_event) and not is_trash %}
 <div class="storage-shell">
-  <aside id="sidebar" class="sidebar" aria-label="Main navigation">
-    <a class="brand sidebar-brand" href="{{ url_for('index') }}">
-      <img src="{{ url_for('static', filename='images/JF.png') }}" alt="JFCM Pila" class="brand-logo">
-      JFCM Library
-    </a>
-    {% if is_public_workspace %}
-    {% if not session.get('user_id') %}
-    <nav class="sidebar-nav">
-      <a class="sidebar-link {% if public_workspace_kind|default('files') == 'files' %}active{% endif %}" href="{{ url_for('public_files') }}"><i class="bi bi-file-earmark-arrow-up"></i>Public Files</a>
-      <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
-      <div class="sidebar-events">
-        <div class="sidebar-link sidebar-event-parent {% if public_workspace_kind|default('files') == 'events' and not current_event %}active{% endif %}">
-          <a class="sidebar-event-link" href="{{ url_for('public_events') }}"><i class="bi bi-calendar-date"></i>Events</a>
-          <button id="events-toggle" class="sidebar-event-toggle" type="button" aria-label="Toggle Events submenu" aria-expanded="true" aria-controls="events-submenu"><i class="bi bi-caret-right-fill sidebar-event-caret" aria-hidden="true"></i></button>
-        </div>
-        <div id="events-submenu" class="events-submenu">
-          {% for event in sidebar_events %}
-          <a class="sidebar-link events-sublink {% if current_event and current_event.id == event.id %}active{% endif %}" data-event-type="{{ event.event_type|default('event', true)|lower }}" href="{{ url_for('public_event_workspace', event_id=event.id, share_token=event.share_token) }}"><img class="sidebar-event-icon" src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""><span class="sidebar-event-name">{{ display_name(event.name) }}</span></a>
-          {% else %}
-          <span class="sidebar-link events-sublink muted">No events yet</span>
-          {% endfor %}
-        </div>
-      </div>
-    </nav>
-    {% endif %}
-    <div class="sidebar-footer">
-      {% if session.get('user_id') %}
-      <a class="sidebar-link secondary" href="{{ url_for('dashboard') }}"><i class="bi bi-folder2-open"></i> My Files</a>
-      <a class="sidebar-link trash" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
-      {% else %}
-      <a class="sidebar-link secondary" href="{{ url_for('login') }}"><i class="bi bi-box-arrow-in-right"></i> Sign In</a>
-      {% endif %}
-      {% include "_legal_links.html" %}
-      <!-- <a class="sidebar-link" href="{{ url_for('register') }}"><i class="bi bi-person-plus"></i> Sign Up</a> -->
-    </div>
-    {% else %}
-    {% if not is_shared_workspace %}
-    <button id="new-menu-button" class="button new new-button" type="button"><i class="bi bi-plus" style="font-size: 2rem;"></i> New</button>
-    <div id="new-menu" class="new-menu" hidden>
-      {% if not is_event_date_workspace %}
-      <button id="new-folder-button" class="menu-action" type="button"><i class="bi bi-folder"></i> New folder</button>
-      {% endif %}
-      <button id="new-event-button" class="menu-action" type="button"><i class="bi bi-plus-lg"></i> New Event</button>
-      {% if not is_event_date_workspace %}
-      <hr style="width: 93%; margin: 4px auto; background-color: #ccc; border: 0; height: 1px; display: block;">
-      <button id="upload-folder-menu-action" class="menu-action" type="button"><i class="bi bi-folder-plus"></i> Upload folder</button>
-      <button id="upload-menu-action" class="menu-action" type="button"><i class="bi bi-upload"></i> Upload files</button>
-      {% endif %}
-    </div>
-    {% endif %}
-    <nav class="sidebar-nav">
-      <a class="sidebar-link {% if section == 'files' %}active{% endif %}" href="{{ url_for('public_folder', share_token=share_context.token) if is_shared_workspace and share_context.kind == 'folder' else url_for('public_event', share_token=share_context.token) if is_shared_workspace and share_context.kind == 'event' else url_for('dashboard') }}"><i class="bi bi-file-earmark-arrow-up"></i>{{ 'Public folder' if is_shared_workspace and share_context.kind == 'folder' else 'Public Event' if is_shared_workspace and share_context.kind == 'event' else 'My Files' }}</a>
-      {% if not is_shared_workspace %}
-      <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
-      <a class="sidebar-link {% if section == 'recent' %}active{% endif %}" href="{{ url_for('dashboard', section='recent') }}"><i class="bi bi-clock"></i>Recent</a>
-      <a class="sidebar-link starred {% if section == 'starred' %}active{% endif %}" href="{{ url_for('dashboard', section='starred') }}"><i class="bi bi-star"></i>Starred</a>
-      <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
-      <div class="sidebar-events">
-        <div class="sidebar-link sidebar-event-parent {% if section == 'events' and not event_id and not is_event_date_workspace %}active{% endif %}">
-          <a class="sidebar-event-link" href="{{ url_for('dashboard', section='events') }}"><i class="bi bi-calendar-date"></i>Events</a>
-          <button id="events-toggle" class="sidebar-event-toggle" type="button" aria-label="Toggle Events submenu" aria-expanded="true" aria-controls="events-submenu"><i class="bi bi-caret-right-fill sidebar-event-caret" aria-hidden="true"></i></button>
-        </div>
-        <div id="events-submenu" class="events-submenu">
-          {% for event in sidebar_events %}
-          <a class="sidebar-link events-sublink {% if section == 'events' and event_id == event.id %}active{% endif %}" data-event-type="{{ event.event_type|default('event', true)|lower }}" href="{{ url_for('dashboard', section='events', event=event.id) }}"><img class="sidebar-event-icon" src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""><span class="sidebar-event-name">{{ display_name(event.name) }}</span></a>
-          {% else %}
-          <span class="sidebar-link events-sublink muted">No events yet</span>
-          {% endfor %}
-        </div>
-      </div>
-      <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
-      <a class="trash sidebar-link {% if section == 'trash' %}active{% endif %}" style="margin-top: 0px;" href="{{ url_for('dashboard', section='trash') }}"><i class="bi bi-trash3"></i>Trash</a>
-      {% endif %}
-    </nav>
-    <div class="sidebar-footer">
-      <div class="storage-summary">
-        <span>Storage used</span>
-        <strong>{{ readable_size(total_storage) }}</strong>
-      </div>
-      <a class="sidebar-link" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings</a>
-      <a id="logout-link" class="sidebar-link trash" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
-      {% include "_legal_links.html" %}
-    </div>
-    {% endif %}
-  </aside>
+  {% include "_workspace_sidebar.html" %}
   <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation" tabindex="-1" hidden></button>
   <main class="workspace{% if is_sectioned_content_workspace %} folder-workspace{% endif %}">
     <header class="workspace-header">
@@ -172,32 +88,32 @@
               {% if section == 'events' %}
                 {% if current_event or is_event_date_workspace %}
                   <a href="{{ url_for('public_events') if is_public_workspace else url_for('dashboard', section='events') }}">Events</a>
-                {% else %}<span>Events</span>{% endif %}
+                {% else %}<span class="breadspan">Events</span>{% endif %}
                 {% if is_event_date_workspace %}
-                <span>/</span>
-                <span>{{ selected_event_date.strftime('%b ') }}{{ selected_event_date.day }}{{ selected_event_date.strftime(', %Y') }}</span>
+                <span class="breadspan">/</span>
+                <span class="breadspan">{{ selected_event_date.strftime('%b ') }}{{ selected_event_date.day }}{{ selected_event_date.strftime(', %Y') }}</span>
                 {% endif %}
                 {% if current_event %}
-                <span>/</span>
-                {% if breadcrumbs %}<a href="{{ url_for('public_event', share_token=share_context.token) if is_shared_workspace else url_for('dashboard', section='events', event=event_id) }}">{{ display_name(current_event.name) }}</a>{% else %}<span>{{ display_name(current_event.name) }}</span>{% endif %}
+                <span class="breadspan">/</span>
+                {% if breadcrumbs %}<a href="{{ url_for('public_event', share_token=share_context.token) if is_shared_workspace else url_for('dashboard', section='events', event=event_id) }}">{{ display_name(current_event.name) }}</a>{% else %}<span class="breadspan">{{ display_name(current_event.name) }}</span>{% endif %}
                 {% endif %}
                 {% for crumb in breadcrumbs %}
-                <span>/</span>
-                {% if loop.last %}<span aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_event', share_token=share_context.token, folder=crumb.id) if is_shared_workspace else url_for('dashboard', section='events', event=event_id, folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
+                <span class="breadspan">/</span>
+                {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_event', share_token=share_context.token, folder=crumb.id) if is_shared_workspace else url_for('dashboard', section='events', event=event_id, folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
                 {% endfor %}
               {% elif is_shared_workspace and share_context.kind == 'folder' %}
                 <a href="{{ url_for('public_files') if is_public_workspace else url_for('dashboard') }}">{{ 'Public Files' if is_public_workspace else 'My Files' }}</a>
                 {% for crumb in breadcrumbs %}
-                <span>/</span>
-                {% if loop.last %}<span aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_folder', share_token=share_context.token, folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
+                <span class="breadspan">/</span>
+                {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_folder', share_token=share_context.token, folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
                 {% endfor %}
               {% elif is_public_workspace %}
-                <span>Public Files</span>
+                <span class="breadspan">Public Files</span>
               {% else %}
-                {% if section in ['starred', 'trash', 'recent'] %}<a href="{{ url_for('dashboard') }}">My Files</a><span>/</span><span>{{ section|capitalize }}</span>{% else %}<a href="{{ url_for('dashboard') }}">My Files</a>{% endif %}
+                {% if section in ['starred', 'trash', 'recent'] %}<a href="{{ url_for('dashboard') }}">My Files</a><span class="breadspan">/</span><span class="breadspan">{{ section|capitalize }}</span>{% else %}<a href="{{ url_for('dashboard') }}">My Files</a>{% endif %}
                 {% for crumb in breadcrumbs %}
-                <span>/</span>
-                {% if loop.last %}<span aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('dashboard', folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
+                <span class="breadspan">/</span>
+                {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('dashboard', folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
                 {% endfor %}
               {% endif %}
             </nav>

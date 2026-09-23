@@ -1943,6 +1943,16 @@ def settings():
             "SELECT COUNT(*) AS folder_count FROM folders WHERE user_id = %s AND is_deleted = FALSE",
             (user_id,),
         )
+        sidebar_cursor = get_db().cursor(dictionary=True)
+        try:
+            sidebar_cursor.execute(
+                "SELECT id, name, event_date, event_type FROM events "
+                "WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name",
+                (user_id,),
+            )
+            sidebar_events = sidebar_cursor.fetchall()
+        finally:
+            sidebar_cursor.close()
         try:
             available_storage = shutil.disk_usage(UPLOAD_FOLDER).free
         except OSError:
@@ -1956,9 +1966,16 @@ def settings():
         account=account,
         preferences=preferences,
         storage_used=storage["used"] or 0,
+        total_storage=storage["used"] or 0,
         available_storage=available_storage,
         file_count=storage["file_count"] or 0,
         folder_count=folders["folder_count"] or 0,
+        sidebar_events=sidebar_events,
+        section="settings",
+        is_public_workspace=False,
+        is_shared_workspace=False,
+        is_event_date_workspace=False,
+        event_id=None,
         max_file_size_mb=MAX_FILE_SIZE_MB,
         offline_cache_scope=current_offline_cache_scope(),
         theme_preference=preferences.get("theme_preference") or "light",

@@ -2,33 +2,15 @@
 {% block title %}Settings | JFCM Library{% endblock %}
 {% block content %}
 <div class="storage-shell">
-  <aside id="sidebar" class="sidebar" aria-label="Main navigation">
-    <a class="brand sidebar-brand" href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='images/JF.png') }}" alt="JFCM Pila" class="brand-logo">JFCM Library</a>
-    <nav class="sidebar-nav">
-      <a class="sidebar-link" href="{{ url_for('dashboard') }}"><i class="bi bi-file-earmark-arrow-up"></i>My Files</a>
-      <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
-      <a class="sidebar-link" href="{{ url_for('dashboard', section='recent') }}"><i class="bi bi-clock"></i>Recent</a>
-      <a class="sidebar-link" href="{{ url_for('dashboard', section='starred') }}"><i class="bi bi-star"></i>Starred</a>
-      <a class="sidebar-link active" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i>Settings</a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="storage-summary"><span>Storage used</span><strong>{{ readable_size(storage_used) }}</strong></div>
-      <a class="sidebar-link trash" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
-      {% include "_legal_links.html" %}
-    </div>
-  </aside>
+  {% include "_workspace_sidebar.html" %}
   <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation" tabindex="-1" hidden></button>
   <main class="workspace">
-    <header class="workspace-header">
-      <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i></button>
-      <div class="workspace-header-title">Settings</div>
-      <a class="button primary" href="{{ url_for('dashboard') }}">My Files</a>
-    </header>
-    <div class="workspace-body">
+    <header class="workspace-header settings-workspace-header"></header>
+    <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i></button>
+    <div class="workspace-body settings-workspace-body">
       <div class="workspace-content settings-workspace-content">
         <div class="settings-page">
-          <nav class="breadcrumbs" aria-label="Current page"><a href="{{ url_for('dashboard') }}">My Files</a><span>/</span><span>Settings</span></nav>
-          <div class="settings-intro"><p class="eyebrow">Authenticated account</p><h1>Settings</h1><p>Manage your account, appearance, saved offline files, and storage details.</p></div>
+          <div class="settings-intro"><h1>Settings</h1><p>Manage your account, appearance, saved offline files, and storage details.</p></div>
 
           <section class="settings-section" aria-labelledby="account-settings-title">
             <div class="settings-section-heading"><i class="bi bi-person"></i><div><h2 id="account-settings-title">Account</h2><p>Changes apply only to your signed-in account.</p></div></div>
