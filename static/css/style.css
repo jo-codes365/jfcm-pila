@@ -4674,7 +4674,7 @@ hr {
     }
 
     .breadcrumbs {
-        font-size: .68rem;
+        font-size: .57rem;
     }
 
     .workspace-title.bulk-selection-active {
@@ -4804,12 +4804,12 @@ hr {
         padding-left: 30px;
     }
 
-    /* Keep the filename text clear of the selection control, while letting
-       its icon remain flush with the filename-column edge. */
+    /* Preserve the filename layout while moving the icon clear of the
+       selection checkbox. The 6px visual offset leaves a 4px icon/text gap. */
     .file-workspace.mobile-select-mode .file-name .file-type-icon,
     .file-workspace.mobile-select-mode .file-name .event-icon-inline {
         position: relative;
-        left: -30px;
+        left: 6px;
     }
 
     html {
