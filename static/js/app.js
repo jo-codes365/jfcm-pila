@@ -652,13 +652,42 @@ document.addEventListener("DOMContentLoaded", function () {
         setTransferItemState(item, "uploading", Math.min(99, Math.round(event.loaded / event.total * 100)));
       });
       request.addEventListener("load", function () {
+        var responseText = request.responseText || "";
         var response = null;
-        try { response = JSON.parse(request.responseText); } catch (_error) {}
+        try { response = JSON.parse(responseText); } catch (_error) {}
         var result = response && response.results && response.results[0];
         var success = request.status >= 200 && request.status < 300 && result && result.status === "success";
-        finish(success, result && result.message ? result.message : success ? "File uploaded successfully." : "Upload failed. Please try again.", false);
+        if (success) {
+          finish(true, result.message || "File uploaded successfully.", false);
+          return;
+        }
+        console.error("Upload request failed", {
+          status: request.status,
+          statusText: request.statusText,
+          responseUrl: request.responseURL,
+          response: response || responseText
+        });
+        var redirectedToLogin = /\/login(?:[?#]|$)/.test(request.responseURL || "");
+        var message = result && result.message
+          ? result.message
+          : response && response.message
+            ? response.message
+            : redirectedToLogin
+              ? "Your session expired. Please sign in again before uploading."
+              : request.status
+                ? "Upload failed (HTTP " + request.status + "). Check the browser console for the server response."
+                : "Upload failed before the server responded. Check your connection and try again.";
+        finish(false, message, false);
       });
-      request.addEventListener("error", function () { finish(false, "Upload failed. Please try again.", false); });
+      request.addEventListener("error", function () {
+        console.error("Upload network error", {
+          status: request.status,
+          statusText: request.statusText,
+          responseUrl: request.responseURL,
+          response: request.responseText || ""
+        });
+        finish(false, "Upload failed before the server responded. Check your connection and try again.", false);
+      });
       request.addEventListener("abort", function () { finish(false, "Upload cancelled.", true); });
       request.send(payload);
     });

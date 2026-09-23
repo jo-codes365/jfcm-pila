@@ -22,7 +22,7 @@ from pathlib import Path
 import mysql.connector
 from dotenv import load_dotenv
 from flask import Flask, abort, flash, g, jsonify, redirect, render_template, request, send_file, send_from_directory, session, url_for
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from mysql.connector import Error as MySQLError
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -188,10 +188,16 @@ def login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if "user_id" not in session:
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                app.logger.warning("Unauthenticated AJAX request: path=%s", request.path)
+                return jsonify({"ok": False, "error": "authentication_required", "message": "Please sign in again before uploading."}), 401
             flash("Please sign in to continue.", "error")
             return redirect(url_for("login"))
         if session_is_expired():
             session.clear()
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                app.logger.warning("Expired-session AJAX request: path=%s", request.path)
+                return jsonify({"ok": False, "error": "session_expired", "message": "Your session expired. Please sign in again before uploading."}), 401
             flash("Your session expired after 7 days of inactivity. Please sign in again.", "error")
             return redirect(url_for("login"))
         touch_authenticated_session()
@@ -2531,6 +2537,14 @@ def upload():
         upload_return_url = url_for("dashboard", folder=folder_id) if folder_id else url_for("dashboard")
     incoming_files = request.files.getlist("file")
     folder_paths = request.form.getlist("folder_path")
+    app.logger.info(
+        "Upload request: user_id=%s content_type=%s content_length=%s files=%d xhr=%s",
+        upload_owner_id,
+        request.mimetype,
+        request.content_length,
+        len(incoming_files),
+        request.headers.get("X-Requested-With") == "XMLHttpRequest",
+    )
     valid_files = [item for item in incoming_files if item and item.filename]
     if not valid_files:
         flash("Select a file to upload.", "error")
@@ -2661,6 +2675,7 @@ def upload():
         flash("No valid files were uploaded.", "error")
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        app.logger.info("Upload response: user_id=%s uploaded=%d received=%d", upload_owner_id, uploaded, len(incoming_files))
         return jsonify({"ok": uploaded > 0, "uploaded": uploaded, "results": results})
     return redirect_to_workspace(upload_return_url)
 
@@ -4011,6 +4026,24 @@ def too_large(_error):
         }), 413
     flash(f"Files must be {MAX_FILE_SIZE_MB} MB or smaller.", "error")
     return redirect(url_for("dashboard") if "user_id" in session else url_for("login"))
+
+
+@app.errorhandler(CSRFError)
+def csrf_error(error):
+    app.logger.warning(
+        "CSRF rejection: path=%s content_type=%s content_length=%s reason=%s",
+        request.path,
+        request.mimetype,
+        request.content_length,
+        error.description,
+    )
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({
+            "ok": False,
+            "error": "csrf_failed",
+            "message": "Your upload request was rejected because its security token expired. Refresh the page and try again.",
+        }), 400
+    return render_template("error.html", message="Your form expired. Refresh the page and try again."), 400
 
 
 @app.errorhandler(404)
