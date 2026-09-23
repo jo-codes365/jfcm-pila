@@ -313,14 +313,55 @@ document.addEventListener("DOMContentLoaded", function () {
   var settingsContent = document.querySelector(".settings-workspace-content");
   if (settingsSearchInput && settingsContent) {
     var settingsSections = Array.from(settingsContent.querySelectorAll(".settings-section"));
+    var clearSettingsHighlights = function () {
+      settingsContent.querySelectorAll("mark.settings-search-highlight").forEach(function (highlight) {
+        highlight.replaceWith(document.createTextNode(highlight.textContent));
+      });
+      settingsContent.normalize();
+    };
+    var highlightSettingsMatches = function (query) {
+      if (!query) return;
+      var walker = document.createTreeWalker(settingsContent, NodeFilter.SHOW_TEXT);
+      var textNodes = [];
+      var node;
+      while ((node = walker.nextNode())) {
+        var parent = node.parentElement;
+        if (!parent || parent.closest("[hidden], .settings-search-empty")) continue;
+        textNodes.push(node);
+      }
+
+      textNodes.forEach(function (textNode) {
+        var text = textNode.nodeValue;
+        var lowerText = text.toLowerCase();
+        var lowerQuery = query.toLowerCase();
+        var matchIndex = lowerText.indexOf(lowerQuery);
+        if (matchIndex === -1) return;
+
+        var fragment = document.createDocumentFragment();
+        var previousIndex = 0;
+        while (matchIndex !== -1) {
+          fragment.appendChild(document.createTextNode(text.slice(previousIndex, matchIndex)));
+          var highlight = document.createElement("mark");
+          highlight.className = "settings-search-highlight";
+          highlight.textContent = text.slice(matchIndex, matchIndex + query.length);
+          fragment.appendChild(highlight);
+          previousIndex = matchIndex + query.length;
+          matchIndex = lowerText.indexOf(lowerQuery, previousIndex);
+        }
+        fragment.appendChild(document.createTextNode(text.slice(previousIndex)));
+        textNode.replaceWith(fragment);
+      });
+    };
     var filterSettingsSections = function () {
       var query = settingsSearchInput.value.trim().toLowerCase();
       var visibleSectionCount = 0;
+      clearSettingsHighlights();
       settingsSections.forEach(function (section) {
         var matches = !query || section.textContent.toLowerCase().includes(query);
         section.hidden = !matches;
         if (matches) visibleSectionCount += 1;
       });
+      highlightSettingsMatches(query);
       if (settingsSearchClear) settingsSearchClear.hidden = !query;
       if (settingsSearchEmpty) settingsSearchEmpty.hidden = !query || visibleSectionCount > 0;
     };

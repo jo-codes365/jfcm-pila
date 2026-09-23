@@ -1932,6 +1932,22 @@ table tbody tr:nth-child(even) {
   color: #657268;
   font-size: .9rem;
 }
+#settings-search::-webkit-search-cancel-button,
+#settings-search::-webkit-search-decoration,
+#settings-search::-webkit-search-results-button,
+#settings-search::-webkit-search-results-decoration {
+  display: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+#settings-search::-ms-clear {
+  display: none;
+}
+.settings-search-highlight {
+  border-radius: 2px;
+  color: inherit;
+  background: #dff1e5;
+}
 .settings-intro {
   margin-bottom: 30px;
 }
