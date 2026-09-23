@@ -14,6 +14,15 @@ CREATE TABLE IF NOT EXISTS users (
     KEY idx_users_created_at (created_at)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS user_preferences (
+    user_id INT UNSIGNED NOT NULL,
+    display_name VARCHAR(80) NULL,
+    theme_preference VARCHAR(10) NOT NULL DEFAULT 'system',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id),
+    CONSTRAINT fk_user_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS folders (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id INT UNSIGNED NOT NULL,

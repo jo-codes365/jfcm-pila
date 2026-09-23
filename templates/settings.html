@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Settings | JFCM Library{% endblock %}
+{% block content %}
+<div class="settings-shell">
+  <header class="settings-header">
+    <a class="brand" href="{{ url_for('dashboard') }}"><img src="{{ url_for('static', filename='images/JF.png') }}" alt="JFCM Pila" class="brand-logo">JFCM Library</a>
+    <a class="button secondary" href="{{ url_for('dashboard') }}"><i class="bi bi-arrow-left"></i> My Files</a>
+  </header>
+  <main class="settings-page">
+    <div class="settings-intro"><p class="eyebrow">Authenticated account</p><h1>Settings</h1><p>Manage your account, appearance, saved offline files, and storage details.</p></div>
+
+    <section class="settings-section" aria-labelledby="account-settings-title">
+      <div class="settings-section-heading"><i class="bi bi-person"></i><div><h2 id="account-settings-title">Account</h2><p>Changes apply only to your signed-in account.</p></div></div>
+      <form class="settings-form" method="post" action="{{ url_for('update_settings_account') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Display name<input name="display_name" maxlength="80" value="{{ preferences.display_name or '' }}" autocomplete="name"></label>
+        <label>Username<input name="username" required pattern="[a-z0-9_]{3,20}" value="{{ account.username }}" autocomplete="username"></label>
+        <label>Email address<input name="email" required type="email" maxlength="255" value="{{ account.email }}" autocomplete="email"></label>
+        <div class="settings-form-actions"><button class="button primary" type="submit">Save account details</button></div>
+      </form>
+      <form class="settings-form settings-subsection" method="post" action="{{ url_for('update_settings_password') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h3>Change password</h3><p class="field-help">Confirm your current password before setting a new one.</p>
+        <label>Current password<input name="current_password" required type="password" autocomplete="current-password"></label>
+        <label>New password<input name="new_password" required minlength="6" type="password" autocomplete="new-password"></label>
+        <label>Confirm new password<input name="confirm_password" required minlength="6" type="password" autocomplete="new-password"></label>
+        <div class="settings-form-actions"><button class="button secondary" type="submit">Change password</button></div>
+      </form>
+      <form class="settings-logout" method="post" action="{{ url_for('logout') }}" data-confirm-message="Sign out of JFCM Library on this device?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-button trash-text" type="submit"><i class="bi bi-box-arrow-right"></i> Log out</button>
+      </form>
+    </section>
+
+    <section class="settings-section" aria-labelledby="appearance-settings-title">
+      <div class="settings-section-heading"><i class="bi bi-circle-half"></i><div><h2 id="appearance-settings-title">Appearance</h2><p>Choose how JFCM Library appears on this account.</p></div></div>
+      <form class="theme-options" method="post" action="{{ url_for('update_settings_theme') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% for theme, label, icon in [('light', 'Light', 'bi-sun'), ('dark', 'Dark', 'bi-moon'), ('system', 'System', 'bi-laptop')] %}
+        <label><input type="radio" name="theme" value="{{ theme }}" {% if theme_preference == theme %}checked{% endif %}><span><i class="bi {{ icon }}"></i>{{ label }}</span></label>
+        {% endfor %}
+        <button class="button secondary" type="submit">Save appearance</button>
+      </form>
+    </section>
+
+    <section class="settings-section" aria-labelledby="uploads-settings-title">
+      <div class="settings-section-heading"><i class="bi bi-cloud-arrow-up"></i><div><h2 id="uploads-settings-title">Uploads</h2><p>Each file is limited to {{ max_file_size_mb }} MB. This limit is enforced by the server.</p></div></div>
+    </section>
+
+    <section id="offline-settings" class="settings-section" aria-labelledby="offline-settings-title">
+      <div class="settings-section-heading"><i class="bi bi-cloud-check"></i><div><h2 id="offline-settings-title">Offline</h2><p>Saved files are kept only in this browser for the current signed-in session.</p></div></div>
+      <div class="offline-summary"><strong id="offline-storage-usage">Checking storage…</strong><span id="offline-item-count">Checking saved offline files…</span></div>
+      <ul id="offline-item-list" class="offline-item-list" aria-live="polite"></ul>
+      <div class="settings-form-actions"><button id="clear-offline-files" class="button danger" type="button" disabled><i class="bi bi-trash3"></i> Clear saved offline files</button></div>
+      <p id="offline-settings-status" class="field-help" aria-live="polite"></p>
+    </section>
+
+    <section class="settings-section" aria-labelledby="storage-settings-title">
+      <div class="settings-section-heading"><i class="bi bi-device-hdd"></i><div><h2 id="storage-settings-title">Storage</h2><p>Your active library content. Trash is not included.</p></div></div>
+      <dl class="storage-details">
+        <div><dt>Total storage used</dt><dd>{{ readable_size(storage_used) }}</dd></div>
+        <div><dt>Available storage</dt><dd>{% if available_storage is not none %}{{ readable_size(available_storage) }}{% else %}Unavailable{% endif %}</dd></div>
+        <div><dt>File count</dt><dd>{{ file_count }}</dd></div>
+        <div><dt>Folder count</dt><dd>{{ folder_count }}</dd></div>
+      </dl>
+    </section>
+  </main>
+</div>
+{% endblock %}

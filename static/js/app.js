@@ -307,6 +307,97 @@ document.addEventListener("DOMContentLoaded", function () {
     return caches.delete(offlineCacheName(manifestUrl));
   }
 
+  function formatOfflineBytes(bytes) {
+    var size = Number(bytes) || 0;
+    var units = ["B", "KB", "MB", "GB"];
+    var unit = 0;
+    while (size >= 1024 && unit < units.length - 1) { size /= 1024; unit += 1; }
+    return (unit === 0 ? String(Math.round(size)) : String(Math.round(size * 10) / 10)) + " " + units[unit];
+  }
+
+  async function refreshOfflineSettings() {
+    var settings = document.getElementById("offline-settings");
+    if (!settings) return;
+    var usage = document.getElementById("offline-storage-usage");
+    var count = document.getElementById("offline-item-count");
+    var list = document.getElementById("offline-item-list");
+    var clearButton = document.getElementById("clear-offline-files");
+    if (!("caches" in window)) {
+      if (usage) usage.textContent = "Offline storage is unavailable in this browser.";
+      if (count) count.textContent = "No browser cache access.";
+      return;
+    }
+    var names = (await caches.keys()).filter(function (name) { return name.indexOf(offlineCachePrefix) === 0; });
+    var items = [];
+    var byteTotal = 0;
+    for (var cacheName of names) {
+      var cache = await caches.open(cacheName);
+      var requests = await cache.keys();
+      var manifestRequest = requests.find(function (entry) { return new URL(entry.url).pathname.indexOf("/offline-manifest/") === 0; });
+      var label = "Saved item";
+      var detail = "Offline";
+      if (manifestRequest) {
+        try {
+          var manifestResponse = await cache.match(manifestRequest);
+          var manifest = await manifestResponse.clone().json();
+          label = manifest.item && manifest.item.name ? manifest.item.name : label;
+          detail = manifest.details && manifest.details.type ? manifest.details.type : detail;
+        } catch (_error) {}
+      }
+      for (var entry of requests) {
+        try {
+          var response = await cache.match(entry);
+          if (response) byteTotal += (await response.clone().blob()).size;
+        } catch (_error) {}
+      }
+      items.push({ label: label, detail: detail });
+    }
+    if (usage) usage.textContent = names.length ? formatOfflineBytes(byteTotal) + " saved offline" : "No offline storage in use";
+    if (count) count.textContent = names.length ? names.length + (names.length === 1 ? " saved item" : " saved items") : "No saved offline files.";
+    if (list) {
+      list.replaceChildren();
+      items.forEach(function (item) {
+        var row = document.createElement("li");
+        var name = document.createElement("span");
+        var type = document.createElement("small");
+        name.textContent = item.label;
+        type.textContent = item.detail;
+        row.append(name, type);
+        list.appendChild(row);
+      });
+    }
+    if (clearButton) clearButton.disabled = names.length === 0;
+  }
+
+  var offlineSettingsClear = document.getElementById("clear-offline-files");
+  if (offlineSettingsClear) {
+    refreshOfflineSettings().catch(function () {
+      var usage = document.getElementById("offline-storage-usage");
+      if (usage) usage.textContent = "Offline storage details are unavailable.";
+    });
+    offlineSettingsClear.addEventListener("click", async function () {
+      if (!window.confirm("Clear all saved offline files from this browser? This cannot be undone.")) return;
+      var status = document.getElementById("offline-settings-status");
+      offlineSettingsClear.disabled = true;
+      if (status) status.textContent = "Clearing saved offline files…";
+      try {
+        var names = await caches.keys();
+        await Promise.all(names.filter(function (name) { return name.indexOf(offlineCachePrefix) === 0; }).map(function (name) { return caches.delete(name); }));
+        if (status) status.textContent = "Saved offline files cleared.";
+        await refreshOfflineSettings();
+      } catch (_error) {
+        if (status) status.textContent = "Unable to clear saved offline files. Please try again.";
+        await refreshOfflineSettings();
+      }
+    });
+  }
+
+  document.querySelectorAll("form[data-confirm-message]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      if (!window.confirm(form.dataset.confirmMessage)) event.preventDefault();
+    });
+  });
+
   async function refreshOfflineActions(manifestUrl) {
     var absoluteUrl = new URL(manifestUrl, window.location.href).href;
     var buttons = Array.from(document.querySelectorAll("[data-offline-action='true'][data-offline-url]"));

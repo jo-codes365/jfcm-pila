@@ -173,6 +173,50 @@ def current_offline_cache_scope():
     return f"private:{session[OFFLINE_CACHE_SCOPE_KEY]}"
 
 
+def ensure_user_preferences_table():
+    """Create the small, per-user settings store for existing installations."""
+    cursor = get_db().cursor()
+    try:
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS user_preferences ("
+            "user_id INT UNSIGNED NOT NULL, "
+            "display_name VARCHAR(80) NULL, "
+            "theme_preference VARCHAR(10) NOT NULL DEFAULT 'system', "
+            "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, "
+            "PRIMARY KEY (user_id), "
+            "CONSTRAINT fk_user_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+            ") ENGINE=InnoDB"
+        )
+        get_db().commit()
+    finally:
+        cursor.close()
+
+
+def user_preferences(user_id):
+    ensure_user_preferences_table()
+    return query_one(
+        "SELECT display_name, theme_preference FROM user_preferences WHERE user_id = %s",
+        (user_id,),
+    ) or {"display_name": "", "theme_preference": "system"}
+
+
+def save_user_preferences(user_id, display_name=None, theme_preference=None):
+    ensure_user_preferences_table()
+    existing = user_preferences(user_id)
+    display_name = existing["display_name"] if display_name is None else display_name
+    theme_preference = existing["theme_preference"] if theme_preference is None else theme_preference
+    cursor = get_db().cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO user_preferences (user_id, display_name, theme_preference) VALUES (%s, %s, %s) "
+            "ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), theme_preference = VALUES(theme_preference)",
+            (user_id, display_name, theme_preference),
+        )
+        get_db().commit()
+    finally:
+        cursor.close()
+
+
 def session_is_expired():
     last_activity_raw = session.get(SESSION_LAST_ACTIVITY_KEY)
     if not last_activity_raw:
@@ -1855,6 +1899,11 @@ def login_post():
                 session.clear()
                 session["user_id"] = user["id"]
                 session["username"] = user["username"] or user["email"]
+                try:
+                    session["theme_preference"] = user_preferences(user["id"]).get("theme_preference") or "system"
+                except MySQLError:
+                    app.logger.exception("Could not load saved appearance preference")
+                    session["theme_preference"] = "system"
                 session[OFFLINE_CACHE_SCOPE_KEY] = secrets.token_urlsafe(24)
                 touch_authenticated_session()
                 return redirect(url_for("dashboard"))
@@ -1864,11 +1913,142 @@ def login_post():
     return render_template("login.html")
 
 
-@app.get("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
     flash("You have been signed out.", "success")
     return redirect(url_for("login"))
+
+
+@app.get("/settings")
+@login_required
+def settings():
+    user_id = session["user_id"]
+    try:
+        account = query_one(
+            "SELECT id, username, email FROM users WHERE id = %s LIMIT 1",
+            (user_id,),
+        )
+        if not account:
+            session.clear()
+            flash("Please sign in again.", "error")
+            return redirect(url_for("login"))
+        preferences = user_preferences(user_id)
+        storage = query_one(
+            "SELECT COALESCE(SUM(file_size), 0) AS used, COUNT(*) AS file_count "
+            "FROM files WHERE user_id = %s AND is_deleted = FALSE",
+            (user_id,),
+        )
+        folders = query_one(
+            "SELECT COUNT(*) AS folder_count FROM folders WHERE user_id = %s AND is_deleted = FALSE",
+            (user_id,),
+        )
+        try:
+            available_storage = shutil.disk_usage(UPLOAD_FOLDER).free
+        except OSError:
+            available_storage = None
+    except MySQLError:
+        app.logger.exception("Settings database error")
+        abort(500)
+
+    return render_template(
+        "settings.html",
+        account=account,
+        preferences=preferences,
+        storage_used=storage["used"] or 0,
+        available_storage=available_storage,
+        file_count=storage["file_count"] or 0,
+        folder_count=folders["folder_count"] or 0,
+        max_file_size_mb=MAX_FILE_SIZE_MB,
+        offline_cache_scope=current_offline_cache_scope(),
+        theme_preference=preferences.get("theme_preference") or "system",
+    )
+
+
+@app.post("/settings/account")
+@login_required
+def update_settings_account():
+    user_id = session["user_id"]
+    display_name_value = request.form.get("display_name", "").strip()
+    username = request.form.get("username", "").strip().lower()
+    email = request.form.get("email", "").strip().lower()
+    if len(display_name_value) > 80:
+        flash("Display name must be 80 characters or fewer.", "error")
+    elif not re.fullmatch(r"[a-z0-9_]{3,20}", username):
+        flash("Username must be 3-20 characters using letters, numbers, or underscores.", "error")
+    elif not email or "@" not in email or len(email) > 255:
+        flash("Enter a valid email address.", "error")
+    else:
+        cursor = None
+        try:
+            cursor = get_db().cursor()
+            cursor.execute(
+                "UPDATE users SET username = %s, email = %s WHERE id = %s",
+                (username, email, user_id),
+            )
+            get_db().commit()
+            save_user_preferences(user_id, display_name=display_name_value)
+            session["username"] = username
+            flash("Account details updated.", "success")
+        except MySQLError as error:
+            get_db().rollback()
+            if getattr(error, "errno", None) == 1062:
+                flash("That email or username is already in use.", "error")
+            else:
+                app.logger.exception("Account settings update failed")
+                flash("Unable to update account details. Please try again.", "error")
+        finally:
+            if cursor:
+                cursor.close()
+    return redirect(url_for("settings"))
+
+
+@app.post("/settings/password")
+@login_required
+def update_settings_password():
+    current_password = request.form.get("current_password", "")
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    user = query_one("SELECT password_hash FROM users WHERE id = %s LIMIT 1", (session["user_id"],))
+    if not user or not check_password_hash(user["password_hash"], current_password):
+        flash("Your current password is incorrect.", "error")
+    elif len(new_password) < 6:
+        flash("New password must be at least 6 characters.", "error")
+    elif new_password != confirm_password:
+        flash("New passwords do not match.", "error")
+    else:
+        cursor = get_db().cursor()
+        try:
+            cursor.execute(
+                "UPDATE users SET password_hash = %s WHERE id = %s",
+                (generate_password_hash(new_password), session["user_id"]),
+            )
+            get_db().commit()
+            flash("Password changed.", "success")
+        except MySQLError:
+            get_db().rollback()
+            app.logger.exception("Password update failed")
+            flash("Unable to change password. Please try again.", "error")
+        finally:
+            cursor.close()
+    return redirect(url_for("settings"))
+
+
+@app.post("/settings/theme")
+@login_required
+def update_settings_theme():
+    theme_preference = request.form.get("theme", "system").strip().lower()
+    if theme_preference not in {"light", "dark", "system"}:
+        abort(400)
+    try:
+        save_user_preferences(session["user_id"], theme_preference=theme_preference)
+        session["theme_preference"] = theme_preference
+        flash("Appearance preference saved.", "success")
+    except MySQLError:
+        get_db().rollback()
+        app.logger.exception("Theme preference update failed")
+        flash("Unable to save appearance preference. Please try again.", "error")
+    return redirect(url_for("settings"))
 
 
 @app.get("/storage")
@@ -2397,13 +2577,13 @@ def public_events():
     )
 
 
-def public_access_hero_content(recent_public_files):
+def public_access_hero_content():
     """Return public-only content for the Public Files workspace headliner."""
     cursor = get_db().cursor(dictionary=True)
     try:
         public_event_where = "is_deleted = FALSE AND share_token IS NOT NULL AND share_token <> ''"
         cursor.execute(
-            "SELECT id, name, event_date, event_type, share_token FROM events "
+            "SELECT id, user_id, name, event_date, event_type, share_token FROM events "
             f"WHERE {public_event_where} ORDER BY created_at DESC, event_date DESC, name LIMIT 1"
         )
         latest_public_event = cursor.fetchone()
@@ -2412,9 +2592,24 @@ def public_access_hero_content(recent_public_files):
             f"WHERE {public_event_where} AND event_date >= CURDATE() ORDER BY event_date, name LIMIT 4"
         )
         upcoming_public_events = cursor.fetchall()
+        if latest_public_event:
+            cursor.execute(
+                "SELECT id, original_filename, mime_type FROM files "
+                "WHERE user_id = %s AND event_id = %s AND is_deleted = FALSE "
+                "AND LEFT(mime_type, 6) = 'image/' ORDER BY uploaded_at DESC LIMIT 1",
+                (latest_public_event["user_id"], latest_public_event["id"]),
+            )
+            preview_image = cursor.fetchone()
+            if preview_image:
+                latest_public_event["preview_image_url"] = url_for(
+                    "preview_content",
+                    file_id=preview_image["id"],
+                    share_context_kind="event",
+                    share_context_token=latest_public_event["share_token"],
+                )
     except MySQLError:
         app.logger.exception("Public workspace hero database error")
-        return {"latest_public_event": None, "upcoming_public_events": [], "recent_public_files": [], "public_announcements": []}
+        return {"latest_public_event": None, "upcoming_public_events": [], "public_announcements": []}
     finally:
         cursor.close()
 
@@ -2423,7 +2618,6 @@ def public_access_hero_content(recent_public_files):
     return {
         "latest_public_event": latest_public_event,
         "upcoming_public_events": upcoming_public_events,
-        "recent_public_files": recent_public_files[:4],
         "public_announcements": [],
     }
 
@@ -2477,7 +2671,7 @@ def public_dashboard():
             "location": "Public Files", "date": item["uploaded_at"],
             **item} for item in files]
     )
-    public_hero_content = public_access_hero_content(files)
+    public_hero_content = public_access_hero_content()
     return render_template(
         "dashboard.html", page_title="Public Files", items=items, total_storage=0, total_files=len(items),
         section="files", current_folder=None, breadcrumbs=[], folder_id=None, event_id=None, current_event=None,
