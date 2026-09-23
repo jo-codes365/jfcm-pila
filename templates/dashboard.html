@@ -173,7 +173,7 @@
               {% endif %}
             </nav>
             <div class="title-filter workspace-title-content">
-              <h1>
+              <h1{% if is_public_workspace and public_workspace_kind|default('files') == 'files' and not current_folder %} class="public-files-workspace-title"{% endif %}>
                 {% if current_folder %}
                 {{ display_name(current_folder.name) }}
                 {% elif current_event %}
