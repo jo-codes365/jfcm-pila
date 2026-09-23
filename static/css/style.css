@@ -152,9 +152,9 @@ h2 {
   color: var(--primary-dark);
 }
 .auth-card > .legal-links {
-  margin-top: 22px;
+  /* margin-top: 22px; */
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  /* border-top: 1px solid #e5e7eb; */
 }
 
 .legal-page {
