@@ -93,6 +93,7 @@
   <main class="workspace{% if is_sectioned_content_workspace %} folder-workspace{% endif %}">
     {% if is_public_workspace and public_workspace_kind|default('files') == 'files' and not is_shared_workspace and latest_public_event %}
     <section class="public-workspace-hero" aria-label="Public Access highlights">
+      <button id="public-workspace-hero-close" class="public-workspace-hero-close" type="button" aria-label="Close Public Access highlights" title="Close highlights"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       <div class="public-workspace-intro">
         <p class="public-workspace-kicker">Public Access</p>
         <h1>JFCM Library</h1>

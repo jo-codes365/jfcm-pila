@@ -181,7 +181,7 @@ def ensure_user_preferences_table():
             "CREATE TABLE IF NOT EXISTS user_preferences ("
             "user_id INT UNSIGNED NOT NULL, "
             "display_name VARCHAR(80) NULL, "
-            "theme_preference VARCHAR(10) NOT NULL DEFAULT 'system', "
+            "theme_preference VARCHAR(10) NOT NULL DEFAULT 'light', "
             "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, "
             "PRIMARY KEY (user_id), "
             "CONSTRAINT fk_user_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
@@ -197,7 +197,7 @@ def user_preferences(user_id):
     return query_one(
         "SELECT display_name, theme_preference FROM user_preferences WHERE user_id = %s",
         (user_id,),
-    ) or {"display_name": "", "theme_preference": "system"}
+    ) or {"display_name": "", "theme_preference": "light"}
 
 
 def save_user_preferences(user_id, display_name=None, theme_preference=None):
@@ -1900,10 +1900,10 @@ def login_post():
                 session["user_id"] = user["id"]
                 session["username"] = user["username"] or user["email"]
                 try:
-                    session["theme_preference"] = user_preferences(user["id"]).get("theme_preference") or "system"
+                    session["theme_preference"] = user_preferences(user["id"]).get("theme_preference") or "light"
                 except MySQLError:
                     app.logger.exception("Could not load saved appearance preference")
-                    session["theme_preference"] = "system"
+                    session["theme_preference"] = "light"
                 session[OFFLINE_CACHE_SCOPE_KEY] = secrets.token_urlsafe(24)
                 touch_authenticated_session()
                 return redirect(url_for("dashboard"))
@@ -1961,7 +1961,7 @@ def settings():
         folder_count=folders["folder_count"] or 0,
         max_file_size_mb=MAX_FILE_SIZE_MB,
         offline_cache_scope=current_offline_cache_scope(),
-        theme_preference=preferences.get("theme_preference") or "system",
+        theme_preference=preferences.get("theme_preference") or "light",
     )
 
 

@@ -307,6 +307,14 @@ document.addEventListener("DOMContentLoaded", function () {
     return caches.delete(offlineCacheName(manifestUrl));
   }
 
+  var publicWorkspaceHeroClose = document.getElementById("public-workspace-hero-close");
+  if (publicWorkspaceHeroClose) {
+    publicWorkspaceHeroClose.addEventListener("click", function () {
+      var hero = publicWorkspaceHeroClose.closest(".public-workspace-hero");
+      if (hero) hero.hidden = true;
+    });
+  }
+
   function formatOfflineBytes(bytes) {
     var size = Number(bytes) || 0;
     var units = ["B", "KB", "MB", "GB"];
