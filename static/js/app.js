@@ -307,23 +307,37 @@ document.addEventListener("DOMContentLoaded", function () {
     return caches.delete(offlineCacheName(manifestUrl));
   }
 
-  var publicWorkspaceHeroClose = document.getElementById("public-workspace-hero-close");
-  if (publicWorkspaceHeroClose) {
-    publicWorkspaceHeroClose.addEventListener("click", function () {
-      var hero = publicWorkspaceHeroClose.closest(".public-workspace-hero");
-      if (hero) hero.hidden = true;
-    });
-  }
-
   document.querySelectorAll("[data-public-workspace-highlight-close]").forEach(function (closeButton) {
     closeButton.addEventListener("click", function () {
       var highlight = closeButton.closest("[data-public-workspace-highlight]");
-      if (!highlight) return;
-      highlight.hidden = true;
-      var hero = highlight.closest(".public-workspace-hero");
-      if (hero && !hero.querySelector("[data-public-workspace-highlight]:not([hidden])")) {
-        hero.hidden = true;
+      if (!highlight || highlight.hidden || highlight.classList.contains("is-closing")) return;
+
+      var finishClosingHighlight = function () {
+        highlight.hidden = true;
+        highlight.classList.remove("is-closing");
+        var hero = highlight.closest(".public-workspace-hero");
+        if (hero && !hero.querySelector("[data-public-workspace-highlight]:not([hidden])")) {
+          hero.hidden = true;
+        }
+      };
+      if (reducedMotionQuery.matches) {
+        finishClosingHighlight();
+        return;
       }
+
+      var closeTimer;
+      var onCloseTransitionEnd = function (event) {
+        if (event.target !== highlight || event.propertyName !== "transform") return;
+        window.clearTimeout(closeTimer);
+        highlight.removeEventListener("transitionend", onCloseTransitionEnd);
+        finishClosingHighlight();
+      };
+      highlight.addEventListener("transitionend", onCloseTransitionEnd);
+      highlight.classList.add("is-closing");
+      closeTimer = window.setTimeout(function () {
+        highlight.removeEventListener("transitionend", onCloseTransitionEnd);
+        finishClosingHighlight();
+      }, 250);
     });
   });
 

@@ -2244,12 +2244,15 @@ table tbody tr:nth-child(even) {
 .public-workspace-highlight {
   position: relative;
   min-width: 0;
+  transition: opacity .16s ease, transform .16s ease;
+}
+.public-workspace-highlight.is-closing {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(16px);
 }
 .public-workspace-highlight[hidden] {
   display: none;
-}
-.latest-event-highlight > .public-workspace-highlight-close {
-  right: 44px;
 }
 .latest-event-highlight > .public-workspace-featured-event {
   width: 100%;
@@ -2280,6 +2283,11 @@ table tbody tr:nth-child(even) {
 }
 .public-workspace-hero-close i {
   font-size: .9rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .public-workspace-highlight {
+    transition: none;
+  }
 }
 .public-workspace-intro {
   /* max-width: 700px; */
@@ -4951,7 +4959,7 @@ hr {
   .storage-details { grid-template-columns: 1fr; }
   .offline-item-list { max-height: 150px; }
   .public-workspace-hero {
-    margin: 20px 14px 0 0;
+    margin: 18px;
     gap: 10px;
   }
   .public-workspace-intro h1 { font-size: 1.22rem; }
