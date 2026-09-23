@@ -898,6 +898,8 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   var uploadButton = document.getElementById("upload-button");
+  var emptyTrashButton = document.getElementById("empty-trash-button");
+  var emptyTrashForm = document.getElementById("empty-trash-form");
   var uploadMenuAction = document.getElementById("upload-menu-action");
   var uploadFolderMenuAction = document.getElementById("upload-folder-menu-action");
   var newMenuButton = document.getElementById("new-menu-button");
@@ -909,6 +911,14 @@ document.addEventListener("DOMContentLoaded", function () {
     fileInput.click();
   }
   if (uploadButton) uploadButton.addEventListener("click", openFilePicker);
+  if (emptyTrashButton && emptyTrashForm) {
+    emptyTrashButton.addEventListener("click", function (event) {
+      event.preventDefault();
+      showCustomConfirm("Permanently delete all items in Trash? This cannot be undone.", "Empty Trash", true, function () {
+        emptyTrashForm.submit();
+      });
+    });
+  }
   if (uploadMenuAction) uploadMenuAction.addEventListener("click", openFilePicker);
   if (uploadFolderMenuAction && folderInputPicker) {
     uploadFolderMenuAction.addEventListener("click", function () {
@@ -2560,16 +2570,24 @@ document.addEventListener("DOMContentLoaded", function () {
   var bulkForm = document.getElementById("bulk-form");
   var bulkToolbar = document.getElementById("bulk-toolbar");
   var workspaceTitle = document.querySelector(".workspace-title");
+  var bulkToolbarOriginalTop = 0;
+  function updateBulkToolbarScrollPosition() {
+    if (!bulkToolbar) return;
+    var upwardOffset = Math.min(Math.max(window.scrollY, 0), 30);
+    bulkToolbar.style.setProperty("--bulk-toolbar-top", bulkToolbarOriginalTop - upwardOffset + "px");
+  }
   function anchorBulkToolbar() {
     if (!bulkToolbar || !workspaceTitle) return;
     var titleBounds = workspaceTitle.getBoundingClientRect();
     var titleOffset = window.matchMedia("(max-width: 480px)").matches ? 0 : 30;
-    bulkToolbar.style.setProperty("--bulk-toolbar-top", titleBounds.top + window.scrollY + titleOffset + "px");
+    bulkToolbarOriginalTop = titleBounds.top + window.scrollY + titleOffset;
+    updateBulkToolbarScrollPosition();
     bulkToolbar.style.setProperty("--bulk-toolbar-left", titleBounds.left + window.scrollX + "px");
     bulkToolbar.style.setProperty("--bulk-toolbar-width", titleBounds.width + "px");
   }
   anchorBulkToolbar();
   window.addEventListener("resize", anchorBulkToolbar);
+  window.addEventListener("scroll", updateBulkToolbarScrollPosition, { passive: true });
   var clearBulkSelection = document.getElementById("clear-bulk-selection");
   var bulkActionsButton = document.getElementById("bulk-actions-button");
   var bulkActionsModal = document.getElementById("bulk-actions-modal");

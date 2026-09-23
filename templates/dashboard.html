@@ -255,6 +255,11 @@
             <button id="date-workspace-add-event" class="button primary" type="button"><i class="bi bi-calendar-plus"></i> Add Event</button>
             {% elif section == 'events' and not current_event %}
             <button id="events-home-add-event" class="button primary" type="button"><i class="bi bi-calendar-plus"></i> New Event</button>
+            {% elif is_trash %}
+            <form id="empty-trash-form" method="post" action="{{ url_for('empty_trash') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button id="empty-trash-button" class="button primary" type="submit"><i class="bi bi-trash" aria-hidden="true"></i> Empty Trash</button>
+            </form>
             {% elif not is_public_workspace and not is_trash and (not is_shared_workspace or workspace_can_edit) %}
             <button id="upload-button" class="button primary" type="button"><i class="bi bi-upload"></i> Upload files</button>
             {% endif %}

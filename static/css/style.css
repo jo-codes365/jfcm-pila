@@ -3653,7 +3653,7 @@ button {
   color: var(--muted);
   background: var(--surface);
   font-size: .85rem;
-  font-weight: 500;
+  font-weight: 700;
   text-align: left;
 }
 .file-table tbody.date-group:first-of-type .date-group-heading th {
