@@ -2381,6 +2381,9 @@ table tbody tr:nth-child(even) {
   gap: 2px;
   margin-top: auto;
 }
+.sidebar-footer #logout-link {
+  margin-bottom: 8px;
+}
 .sidebar-footer .legal-links {
   flex-wrap: wrap;
   gap: 5px 8px;
