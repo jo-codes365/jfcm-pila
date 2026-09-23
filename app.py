@@ -2358,7 +2358,23 @@ def public_dashboard():
             "AND share_token IS NOT NULL AND share_token <> '' ORDER BY created_at DESC"
         )
         folders = cursor.fetchall()
-        sizes = folder_sizes(cursor, [folder["id"] for folder in folders], include_deleted=False)
+        # Public Files can contain roots from more than one owner and runs
+        # without a session.  folder_sizes deliberately scopes its recursive
+        # query to an owner, so group the already-public roots by owner rather
+        # than falling back to session["user_id"].
+        sizes = {}
+        folder_ids_by_owner = {}
+        for folder in folders:
+            folder_ids_by_owner.setdefault(folder["user_id"], []).append(folder["id"])
+        for owner_id, owner_folder_ids in folder_ids_by_owner.items():
+            sizes.update(
+                folder_sizes(
+                    cursor,
+                    owner_folder_ids,
+                    include_deleted=False,
+                    owner_id=owner_id,
+                )
+            )
         for folder in folders:
             folder["size"] = sizes.get(folder["id"], 0)
         cursor.execute(
