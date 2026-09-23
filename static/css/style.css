@@ -2236,8 +2236,9 @@ table tbody tr:nth-child(even) {
   flex: 0 0 auto;
   display: grid;
   gap: 14px;
-  margin: 18px 20px 0;
+  margin: 20px 20px 0 0;
 }
+.public-workspace-hero[hidden] { display: none; }
 .public-workspace-hero-close {
   position: absolute;
   z-index: 3;
@@ -4856,7 +4857,7 @@ hr {
   .storage-details { grid-template-columns: 1fr; }
   .offline-item-list { max-height: 150px; }
   .public-workspace-hero {
-    margin: 10px 14px 0;
+    margin: 20px 14px 0 0;
     gap: 10px;
   }
   .public-workspace-intro h1 { font-size: 1.22rem; }
