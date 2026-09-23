@@ -1903,7 +1903,7 @@ table tbody tr:nth-child(even) {
   border-bottom: 1px solid #dce6df;
 }
 .settings-workspace-header { min-height: 42px; }
-.settings-workspace-content { display: block; min-height: 0; height: 100%; overflow-x: hidden; overflow-y: auto; padding-bottom: 24px; }
+.settings-workspace-content { display: block; min-height: 0; height: 100%; overflow-x: hidden !important; overflow-y: auto !important; padding-bottom: 24px; }
 .settings-page { width: min(100%, 760px); margin: 0 auto 48px; }
 .settings-workspace-content .settings-section { overflow-wrap: anywhere; }
 .settings-workspace-content .settings-intro h1 { font-size: 1.5rem; }
