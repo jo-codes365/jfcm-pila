@@ -265,7 +265,7 @@
             {% endif %}
             
         </section>
-        {% if not is_public_workspace %}<form id="upload-form" method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" data-max-size-mb="{{ max_file_size_mb }}" hidden>
+        {% if not is_public_workspace %}<form id="upload-form" class="upload-form" method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data" data-max-size-mb="{{ max_file_size_mb }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="folder_id" value="{{ folder_id or '' }}">
           <input type="hidden" name="event_id" value="{{ event_id or '' }}">

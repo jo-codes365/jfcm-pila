@@ -2755,6 +2755,16 @@ table tbody tr:nth-child(even) {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
 }
+.upload-form {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
 .drop-zone {
   min-height: 130px;
   border: 1px dashed #83b996;
