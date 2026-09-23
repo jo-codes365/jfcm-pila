@@ -94,22 +94,27 @@
     {% if is_public_workspace and public_workspace_kind|default('files') == 'files' and not is_shared_workspace and latest_public_event %}
     <section class="public-workspace-hero" aria-label="Public Access highlights">
       <button id="public-workspace-hero-close" class="public-workspace-hero-close" type="button" aria-label="Close Public Access highlights" title="Close highlights"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+      <div class="public-workspace-highlight latest-event-highlight" data-public-workspace-highlight>
+      <button class="public-workspace-hero-close public-workspace-highlight-close" type="button" data-public-workspace-highlight-close aria-label="Close Latest Event highlight" title="Close Latest Event"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       <a class="public-workspace-featured-event{% if not latest_public_event.preview_image_url|default('') %} is-fallback{% endif %}" href="{{ url_for('public_event_workspace', event_id=latest_public_event.id, share_token=latest_public_event.share_token) }}">
         {% if latest_public_event.preview_image_url|default('') %}<img src="{{ latest_public_event.preview_image_url }}" alt="" class="public-workspace-event-preview">{% endif %}
         <span class="public-workspace-featured-copy"><span class="public-workspace-kicker latest-event-label">Latest Event</span><strong>{{ display_name(latest_public_event.name) }}</strong><span>{{ latest_public_event.event_date.strftime('%B ') }}{{ latest_public_event.event_date.day }}, {{ latest_public_event.event_date.strftime('%Y') }} · {{ event_type_label(latest_public_event.event_type) }}</span></span>
         <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
       </a>
-      {% if upcoming_public_event_count or public_announcements %}
-      <div class="public-workspace-hero-details">
-        {% if upcoming_public_event_count %}
+      </div>
+      {% if upcoming_public_event_count %}
+      <div class="public-workspace-hero-details public-workspace-highlight" data-public-workspace-highlight>
+        <button class="public-workspace-hero-close public-workspace-highlight-close" type="button" data-public-workspace-highlight-close aria-label="Close Upcoming Events highlight" title="Close Upcoming Events"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         <section class="public-workspace-hero-section" aria-labelledby="public-upcoming-events-title">
           <div class="public-upcoming-events-heading"><h2 id="public-upcoming-events-title">Upcoming Events</h2><span class="public-upcoming-events-count">{{ upcoming_public_event_count }}</span></div>
           <div>{% for event in upcoming_public_events %}<a href="{{ url_for('public_event_workspace', event_id=event.id, share_token=event.share_token) }}"><img src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""><span>{{ display_name(event.name) }}</span><time datetime="{{ event.event_date.isoformat() }}">{{ event.event_date.strftime('%b ') }}{{ event.event_date.day }}</time></a>{% endfor %}</div>
         </section>
-        {% endif %}
-        {% if public_announcements %}
+      </div>
+      {% endif %}
+      {% if public_announcements %}
+      <div class="public-workspace-hero-details public-workspace-highlight" data-public-workspace-highlight>
+        <button class="public-workspace-hero-close public-workspace-highlight-close" type="button" data-public-workspace-highlight-close aria-label="Close Announcements highlight" title="Close Announcements"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         <section class="public-workspace-hero-section" aria-labelledby="public-announcements-title"><h2 id="public-announcements-title">Announcements</h2>{% for announcement in public_announcements %}<p>{{ announcement }}</p>{% endfor %}</section>
-        {% endif %}
       </div>
       {% endif %}
     </section>

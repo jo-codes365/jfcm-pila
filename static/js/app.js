@@ -315,6 +315,18 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  document.querySelectorAll("[data-public-workspace-highlight-close]").forEach(function (closeButton) {
+    closeButton.addEventListener("click", function () {
+      var highlight = closeButton.closest("[data-public-workspace-highlight]");
+      if (!highlight) return;
+      highlight.hidden = true;
+      var hero = highlight.closest(".public-workspace-hero");
+      if (hero && !hero.querySelector("[data-public-workspace-highlight]:not([hidden])")) {
+        hero.hidden = true;
+      }
+    });
+  });
+
   function formatOfflineBytes(bytes) {
     var size = Number(bytes) || 0;
     var units = ["B", "KB", "MB", "GB"];

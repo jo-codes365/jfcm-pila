@@ -2241,11 +2241,24 @@ table tbody tr:nth-child(even) {
 .public-workspace-hero[hidden] {
   display: none;
 }
+.public-workspace-highlight {
+  position: relative;
+  min-width: 0;
+}
+.public-workspace-highlight[hidden] {
+  display: none;
+}
+.latest-event-highlight > .public-workspace-highlight-close {
+  right: 44px;
+}
+.latest-event-highlight > .public-workspace-featured-event {
+  width: 100%;
+}
 .public-workspace-hero-close {
   position: absolute;
   z-index: 3;
-  top: 0;
-  right: 0;
+  top: 4px;
+  right: 4px;
   display: inline-grid;
   width: 34px;
   min-height: 34px;
@@ -2253,13 +2266,13 @@ table tbody tr:nth-child(even) {
   place-items: center;
   border: 0;
   border-radius: 50%;
-  color: #5f6c63;
+  color: var(--danger);
   background: transparent;
   cursor: pointer;
 }
 .public-workspace-hero-close:hover {
-  color: #1f5737;
-  background: #eaf7ee;
+  color: var(--surface);
+  background: var(--danger);
 }
 .public-workspace-hero-close:focus-visible {
   outline: 2px solid #79bc8a;
