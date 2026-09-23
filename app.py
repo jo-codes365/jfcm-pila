@@ -2592,6 +2592,11 @@ def public_access_hero_content():
             f"WHERE {public_event_where} AND event_date >= CURDATE() ORDER BY event_date, name LIMIT 4"
         )
         upcoming_public_events = cursor.fetchall()
+        cursor.execute(
+            "SELECT COUNT(*) AS upcoming_public_event_count FROM events "
+            f"WHERE {public_event_where} AND event_date >= CURDATE()"
+        )
+        upcoming_public_event_count = cursor.fetchone()["upcoming_public_event_count"]
         if latest_public_event:
             cursor.execute(
                 "SELECT id, original_filename, mime_type FROM files "
@@ -2609,7 +2614,12 @@ def public_access_hero_content():
                 )
     except MySQLError:
         app.logger.exception("Public workspace hero database error")
-        return {"latest_public_event": None, "upcoming_public_events": [], "public_announcements": []}
+        return {
+            "latest_public_event": None,
+            "upcoming_public_events": [],
+            "upcoming_public_event_count": 0,
+            "public_announcements": [],
+        }
     finally:
         cursor.close()
 
@@ -2618,6 +2628,7 @@ def public_access_hero_content():
     return {
         "latest_public_event": latest_public_event,
         "upcoming_public_events": upcoming_public_events,
+        "upcoming_public_event_count": upcoming_public_event_count,
         "public_announcements": [],
     }
 
