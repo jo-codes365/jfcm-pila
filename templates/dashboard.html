@@ -27,7 +27,7 @@
       {% if is_public_workspace %}
       <nav class="workspace-header-auth" aria-label="Account actions">
         {% if session.get('user_id') %}
-        <a class="button primary" href="{{ url_for('dashboard') }}">My Files</a>
+        <a class="button primary" href="{{ url_for('dashboard') }}">Files</a>
         {% else %}
         <a class="button primary" href="{{ url_for('login') }}">Sign In</a>
         {% endif %}
@@ -102,7 +102,7 @@
                 {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_event', share_token=share_context.token, folder=crumb.id) if is_shared_workspace else url_for('dashboard', section='events', event=event_id, folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
                 {% endfor %}
               {% elif is_shared_workspace and share_context.kind == 'folder' %}
-                <a href="{{ url_for('public_files') if is_public_workspace else url_for('dashboard') }}">{{ 'Public Files' if is_public_workspace else 'My Files' }}</a>
+                <a href="{{ url_for('public_files') if is_public_workspace else url_for('dashboard') }}">{{ 'Public Files' if is_public_workspace else 'Files' }}</a>
                 {% for crumb in breadcrumbs %}
                 <span class="breadspan">/</span>
                 {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_folder', share_token=share_context.token, folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
@@ -110,7 +110,7 @@
               {% elif is_public_workspace %}
                 <span class="breadspan">Public Files</span>
               {% else %}
-                {% if section in ['starred', 'trash', 'recent'] %}<a href="{{ url_for('dashboard') }}">My Files</a><span class="breadspan">/</span><span class="breadspan">{{ section|capitalize }}</span>{% else %}<a href="{{ url_for('dashboard') }}">My Files</a>{% endif %}
+                {% if section in ['starred', 'trash', 'recent'] %}<a href="{{ url_for('dashboard') }}">Files</a><span class="breadspan">/</span><span class="breadspan">{{ section|capitalize }}</span>{% else %}<a href="{{ url_for('dashboard') }}">Files</a>{% endif %}
                 {% for crumb in breadcrumbs %}
                 <span class="breadspan">/</span>
                 {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('dashboard', folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
@@ -138,7 +138,7 @@
                 {% elif section == 'events' %}
                 Events
                 {% else %}
-                My Files
+                Files
                 {% endif %}
               </h1>
               {% if current_event and not current_folder %}

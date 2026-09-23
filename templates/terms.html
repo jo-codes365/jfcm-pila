@@ -1,17 +1,9 @@
-{% extends "base.html" %}
+{% extends "legal_workspace.html" %}
 {% set legal_page = 'terms' %}
 {% block title %}Terms of Use | JFCM Library{% endblock %}
-{% block content %}
-<main class="legal-page">
-  <header class="legal-header">
-    <a class="brand" href="{{ url_for('index') }}">
-      <img src="{{ url_for('static', filename='images/JF.png') }}" alt="JFCM Pila" class="brand-logo">
-      JFCM Library
-    </a>
-    <a class="button secondary" href="{{ url_for('index') }}">Back to Library</a>
-  </header>
-  <article class="legal-card">
-    <div class="legal-intro">
+{% block legal_content %}
+  <article class="legal-card legal-workspace-card">
+    <div class="legal-intro settings-intro">
       <!-- <p class="legal-kicker">JFCM Library</p> -->
       <h1>Terms of Use</h1>
       <p class="muted">Last updated September 18, 2026</p>
@@ -61,5 +53,4 @@
     </div>
   </article>
   <footer class="legal-page-footer">{% include "_legal_links.html" %}</footer>
-</main>
 {% endblock %}

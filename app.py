@@ -1823,12 +1823,68 @@ def index():
 
 @app.get("/privacy")
 def privacy_notice():
-    return render_template("privacy.html", privacy_contact_email=PRIVACY_CONTACT_EMAIL)
+    return render_template(
+        "privacy.html",
+        privacy_contact_email=PRIVACY_CONTACT_EMAIL,
+        legal_page="privacy",
+        **legal_workspace_context(),
+    )
 
 
 @app.get("/terms")
 def terms_of_use():
-    return render_template("terms.html")
+    return render_template("terms.html", legal_page="terms", **legal_workspace_context())
+
+
+def legal_workspace_context():
+    """Provide the shared sidebar context without requiring legal-page sign-in."""
+    user_id = session.get("user_id")
+    if not user_id:
+        return {
+            "is_public_workspace": True,
+            "public_workspace_kind": "files",
+            "is_shared_workspace": False,
+            "is_event_date_workspace": False,
+            "current_event": None,
+            "event_id": None,
+            "section": "files",
+            "sidebar_events": public_sidebar_events(),
+            "total_storage": 0,
+        }
+
+    sidebar_events = []
+    total_storage = 0
+    try:
+        storage = query_one(
+            "SELECT COALESCE(SUM(file_size), 0) AS total_storage "
+            "FROM files WHERE user_id = %s AND is_deleted = FALSE",
+            (user_id,),
+        )
+        total_storage = storage["total_storage"] or 0
+        cursor = get_db().cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT id, name, event_date, event_type FROM events "
+                "WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name",
+                (user_id,),
+            )
+            sidebar_events = cursor.fetchall()
+        finally:
+            cursor.close()
+    except MySQLError:
+        app.logger.exception("Could not load sidebar details for a legal page")
+
+    return {
+        "is_public_workspace": False,
+        "public_workspace_kind": "files",
+        "is_shared_workspace": False,
+        "is_event_date_workspace": False,
+        "current_event": None,
+        "event_id": None,
+        "section": "legal",
+        "sidebar_events": sidebar_events,
+        "total_storage": total_storage,
+    }
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -2284,7 +2340,7 @@ def dashboard():
                 item["location_url"] = url_for("dashboard", section="events", event=event_id, folder=location_folder_id) if section == "events" and event_id is not None else url_for("dashboard", folder=location_folder_id)
                 item["location_is_current"] = folder_id == location_folder_id and section in {"files", "events"}
         calendar_context = build_events_calendar_context(calendar_year, calendar_month, dashboard_url_with_updates)
-        page_title = "My Files"
+        page_title = "Files"
         if current_folder:
             page_title = display_name(current_folder["name"])
         elif current_event:
@@ -2332,7 +2388,7 @@ def dashboard():
         flash("Could not load your files. Please try again.", "error")
         return render_template(
             "dashboard.html",
-            page_title="My files",
+            page_title="Files",
             items=[],
             total_storage=0,
             total_files=0,

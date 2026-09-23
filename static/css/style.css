@@ -1917,6 +1917,23 @@ table tbody tr:nth-child(even) {
   width: min(100%, 760px);
   margin: 0 auto 48px;
 }
+.legal-workspace-page {
+  min-height: 100%;
+}
+.legal-card.legal-workspace-card {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.legal-workspace-page .legal-page-footer {
+  width: auto;
+  margin: 0;
+  padding: 22px 0 4px;
+}
 .settings-workspace-content .settings-section {
   overflow-wrap: anywhere;
 }
