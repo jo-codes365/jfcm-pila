@@ -307,6 +307,33 @@ document.addEventListener("DOMContentLoaded", function () {
     return caches.delete(offlineCacheName(manifestUrl));
   }
 
+  var settingsSearchInput = document.getElementById("settings-search");
+  var settingsSearchClear = document.getElementById("settings-search-clear");
+  var settingsSearchEmpty = document.getElementById("settings-search-empty");
+  var settingsContent = document.querySelector(".settings-workspace-content");
+  if (settingsSearchInput && settingsContent) {
+    var settingsSections = Array.from(settingsContent.querySelectorAll(".settings-section"));
+    var filterSettingsSections = function () {
+      var query = settingsSearchInput.value.trim().toLowerCase();
+      var visibleSectionCount = 0;
+      settingsSections.forEach(function (section) {
+        var matches = !query || section.textContent.toLowerCase().includes(query);
+        section.hidden = !matches;
+        if (matches) visibleSectionCount += 1;
+      });
+      if (settingsSearchClear) settingsSearchClear.hidden = !query;
+      if (settingsSearchEmpty) settingsSearchEmpty.hidden = !query || visibleSectionCount > 0;
+    };
+    settingsSearchInput.addEventListener("input", filterSettingsSections);
+    if (settingsSearchClear) {
+      settingsSearchClear.addEventListener("click", function () {
+        settingsSearchInput.value = "";
+        filterSettingsSections();
+        settingsSearchInput.focus();
+      });
+    }
+  }
+
   document.querySelectorAll("[data-public-workspace-highlight-close]").forEach(function (closeButton) {
     closeButton.addEventListener("click", function () {
       var highlight = closeButton.closest("[data-public-workspace-highlight]");

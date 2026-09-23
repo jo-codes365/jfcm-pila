@@ -78,6 +78,7 @@
         <strong>{{ readable_size(total_storage) }}</strong>
       </div>
       <a class="sidebar-link {% if section == 'settings' %}active{% endif %}" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings</a>
+      <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
       <a id="logout-link" class="sidebar-link trash" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
       {% include "_legal_links.html" %}
     </div>

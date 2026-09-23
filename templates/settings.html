@@ -5,12 +5,21 @@
   {% include "_workspace_sidebar.html" %}
   <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation" tabindex="-1" hidden></button>
   <main class="workspace">
-    <header class="workspace-header settings-workspace-header"></header>
+    <header class="workspace-header settings-workspace-header">
+      <div class="global-search-wrap settings-search-wrap">
+        <label class="global-search" for="settings-search">
+          <span class="search-label" aria-hidden="true"><i class="bi bi-search search-icon-default"></i></span>
+          <input id="settings-search" type="search" placeholder="Search Settings..." aria-label="Search Settings" autocomplete="off">
+          <button id="settings-search-clear" class="global-search-clear" type="button" aria-label="Clear Settings search" title="Clear search" hidden><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </label>
+      </div>
+    </header>
     <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i></button>
     <div class="workspace-body">
       <div class="workspace-content settings-workspace-content">
         <div class="settings-page">
           <div class="settings-intro"><h1>Settings</h1><p>Manage your account, appearance, saved offline files, and storage details.</p></div>
+          <p id="settings-search-empty" class="settings-search-empty" role="status" hidden>No matching settings</p>
 
           <section class="settings-section" aria-labelledby="account-settings-title">
             <div class="settings-section-heading"><i class="bi bi-person"></i><div><h2 id="account-settings-title">Account</h2><p>Changes apply only to your signed-in account.</p></div></div>
