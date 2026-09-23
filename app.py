@@ -1765,8 +1765,8 @@ def utility_processor():
 
 @app.route("/")
 def index():
-    # Keep authenticated visitors in their private workspace while giving
-    # anonymous visitors a public-only landing page.
+    # Keep the landing route session-aware while the dashboard remains the
+    # single renderer for authenticated and public workspaces.
     if "user_id" in session:
         if session_is_expired():
             session.clear()
@@ -1774,42 +1774,7 @@ def index():
         else:
             touch_authenticated_session()
             purge_expired_trash(session["user_id"])
-            return redirect(url_for("dashboard"))
-
-    cursor = get_db().cursor(dictionary=True)
-    try:
-        public_event_where = "is_deleted = FALSE AND share_token IS NOT NULL AND share_token <> ''"
-        cursor.execute(
-            "SELECT id, name, event_date, event_type, share_token, created_at FROM events "
-            f"WHERE {public_event_where} ORDER BY created_at DESC, event_date DESC, name LIMIT 1"
-        )
-        latest_public_event = cursor.fetchone()
-        cursor.execute(
-            "SELECT id, name, event_date, event_type, share_token FROM events "
-            f"WHERE {public_event_where} AND event_date >= CURDATE() ORDER BY event_date, name LIMIT 4"
-        )
-        upcoming_public_events = cursor.fetchall()
-        cursor.execute(
-            "SELECT id, original_filename, mime_type, file_size, share_token, uploaded_at FROM files "
-            "WHERE is_deleted = FALSE AND event_id IS NULL AND folder_id IS NULL "
-            "AND share_token IS NOT NULL AND share_token <> '' ORDER BY uploaded_at DESC LIMIT 4"
-        )
-        recent_public_files = cursor.fetchall()
-    except MySQLError:
-        app.logger.exception("Public Access landing page database error")
-        abort(500)
-    finally:
-        cursor.close()
-
-    # Announcements have no public source in the current schema. Keep the
-    # template hook data-driven so it remains absent until that source exists.
-    return render_template(
-        "public_landing.html",
-        latest_public_event=latest_public_event,
-        upcoming_public_events=upcoming_public_events,
-        recent_public_files=recent_public_files,
-        public_announcements=[],
-    )
+    return redirect(url_for("dashboard"))
 
 
 @app.get("/privacy")
@@ -2432,6 +2397,37 @@ def public_events():
     )
 
 
+def public_access_hero_content(recent_public_files):
+    """Return public-only content for the Public Files workspace headliner."""
+    cursor = get_db().cursor(dictionary=True)
+    try:
+        public_event_where = "is_deleted = FALSE AND share_token IS NOT NULL AND share_token <> ''"
+        cursor.execute(
+            "SELECT id, name, event_date, event_type, share_token FROM events "
+            f"WHERE {public_event_where} ORDER BY created_at DESC, event_date DESC, name LIMIT 1"
+        )
+        latest_public_event = cursor.fetchone()
+        cursor.execute(
+            "SELECT id, name, event_date, event_type, share_token FROM events "
+            f"WHERE {public_event_where} AND event_date >= CURDATE() ORDER BY event_date, name LIMIT 4"
+        )
+        upcoming_public_events = cursor.fetchall()
+    except MySQLError:
+        app.logger.exception("Public workspace hero database error")
+        return {"latest_public_event": None, "upcoming_public_events": [], "recent_public_files": [], "public_announcements": []}
+    finally:
+        cursor.close()
+
+    # There is no public announcement source in the existing schema, so this
+    # stays empty and the corresponding UI remains hidden.
+    return {
+        "latest_public_event": latest_public_event,
+        "upcoming_public_events": upcoming_public_events,
+        "recent_public_files": recent_public_files[:4],
+        "public_announcements": [],
+    }
+
+
 def public_dashboard():
     """Render the root of the public Library without flattening its hierarchy."""
     cursor = get_db().cursor(dictionary=True)
@@ -2481,6 +2477,7 @@ def public_dashboard():
             "location": "Public Files", "date": item["uploaded_at"],
             **item} for item in files]
     )
+    public_hero_content = public_access_hero_content(files)
     return render_template(
         "dashboard.html", page_title="Public Files", items=items, total_storage=0, total_files=len(items),
         section="files", current_folder=None, breadcrumbs=[], folder_id=None, event_id=None, current_event=None,
@@ -2492,6 +2489,7 @@ def public_dashboard():
         weeks=sunday_first_month_weeks(date.today().year, date.today().month), events_by_day={}, calendar_day_urls={},
         calendar_previous_url="", calendar_next_url="", show_calendar_back_link=False,
         date_grouped_file_list=group_file_list_by_date(items),
+        **public_hero_content,
     )
 
 

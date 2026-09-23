@@ -90,6 +90,40 @@
   </aside>
   <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation" tabindex="-1" hidden></button>
   <main class="workspace{% if is_sectioned_content_workspace %} folder-workspace{% endif %}">
+    {% if is_public_workspace and public_workspace_kind|default('files') == 'files' and not is_shared_workspace and (latest_public_event or upcoming_public_events or recent_public_files or public_announcements) %}
+    <section class="public-workspace-hero" aria-label="Public Access highlights">
+      {% if latest_public_event %}
+      <a class="public-workspace-featured-event" href="{{ url_for('public_event_workspace', event_id=latest_public_event.id, share_token=latest_public_event.share_token) }}">
+        <img src="{{ url_for('static', filename='images/' ~ event_icon_file(latest_public_event.event_type)) }}" alt="" class="public-workspace-event-icon">
+        <span class="public-workspace-featured-copy"><span class="public-workspace-kicker">Latest Event</span><strong>{{ display_name(latest_public_event.name) }}</strong><span>{{ latest_public_event.event_date.strftime('%B ') }}{{ latest_public_event.event_date.day }}, {{ latest_public_event.event_date.strftime('%Y') }} · {{ event_type_label(latest_public_event.event_type) }}</span></span>
+        <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+      </a>
+      {% endif %}
+      {% if upcoming_public_events or recent_public_files or public_announcements %}
+      <div class="public-workspace-hero-details">
+        {% if upcoming_public_events %}
+        <section class="public-workspace-hero-section" aria-labelledby="public-upcoming-events-title">
+          <h2 id="public-upcoming-events-title">Upcoming Events</h2>
+          {% for event in upcoming_public_events %}
+          <a href="{{ url_for('public_event_workspace', event_id=event.id, share_token=event.share_token) }}"><img src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""><span>{{ display_name(event.name) }}</span><time datetime="{{ event.event_date.isoformat() }}">{{ event.event_date.strftime('%b ') }}{{ event.event_date.day }}</time></a>
+          {% endfor %}
+        </section>
+        {% endif %}
+        {% if recent_public_files %}
+        <section class="public-workspace-hero-section" aria-labelledby="public-recent-files-title">
+          <h2 id="public-recent-files-title">Recently Added</h2>
+          {% for file in recent_public_files %}
+          <a href="{{ url_for('token_preview', share_token=file.share_token) }}"><img src="{{ url_for('static', filename='images/' ~ file_type_icon(file)) }}" alt=""><span>{{ display_name(file.original_filename) }}</span><time datetime="{{ file.uploaded_at.isoformat() }}">{{ file.uploaded_at.strftime('%b ') }}{{ file.uploaded_at.day }}</time></a>
+          {% endfor %}
+        </section>
+        {% endif %}
+        {% if public_announcements %}
+        <section class="public-workspace-hero-section" aria-labelledby="public-announcements-title"><h2 id="public-announcements-title">Announcements</h2>{% for announcement in public_announcements %}<p>{{ announcement }}</p>{% endfor %}</section>
+        {% endif %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
     <header class="workspace-header">
       <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
         <i class="bi bi-list" aria-hidden="true"></i>
