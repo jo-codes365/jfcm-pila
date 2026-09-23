@@ -326,7 +326,7 @@ document.addEventListener("DOMContentLoaded", function () {
       var node;
       while ((node = walker.nextNode())) {
         var parent = node.parentElement;
-        if (!parent || parent.closest("[hidden], .settings-search-empty")) continue;
+        if (!parent || parent.closest("[hidden], button, .settings-search-empty")) continue;
         textNodes.push(node);
       }
 
@@ -357,7 +357,11 @@ document.addEventListener("DOMContentLoaded", function () {
       var visibleSectionCount = 0;
       clearSettingsHighlights();
       settingsSections.forEach(function (section) {
-        var matches = !query || section.textContent.toLowerCase().includes(query);
+        var searchableSection = section.cloneNode(true);
+        searchableSection.querySelectorAll("button").forEach(function (button) {
+          button.remove();
+        });
+        var matches = !query || searchableSection.textContent.toLowerCase().includes(query);
         section.hidden = !matches;
         if (matches) visibleSectionCount += 1;
       });
