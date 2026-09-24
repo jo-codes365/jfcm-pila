@@ -192,6 +192,23 @@ def ensure_user_preferences_table():
         cursor.close()
 
 
+def query_all(sql, values=()):
+    cursor = get_db().cursor(dictionary=True)
+    try:
+        cursor.execute(sql, values)
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+
+
+def current_upload_limit_mb():
+    try:
+        result = query_one("SELECT setting_value FROM system_settings WHERE setting_key = %s", ("max_file_size_mb",))
+        return max(1, min(int(result["setting_value"]), MAX_FILE_SIZE_MB)) if result else MAX_FILE_SIZE_MB
+    except (MySQLError, ValueError, TypeError):
+        return MAX_FILE_SIZE_MB
+
+
 def user_preferences(user_id):
     ensure_user_preferences_table()
     return query_one(
@@ -245,7 +262,33 @@ def login_required(view):
             flash("Your session expired after 7 days of inactivity. Please sign in again.", "error")
             return redirect(url_for("login"))
         touch_authenticated_session()
+        principal_id = session.get("principal_id", session["user_id"])
+        current_role = query_one("SELECT role, is_active FROM users WHERE id = %s", (principal_id,))
+        if not current_role or not current_role.get("is_active"):
+            session.clear()
+            abort(403)
+        if not current_role or current_role.get("role") not in {"admin", "super-admin"}:
+            session.clear()
+            abort(403)
+        if current_role["role"] == "super-admin":
+            selected_owner = query_one("SELECT id FROM users WHERE id = %s", (session.get("user_id"),))
+            if not selected_owner:
+                session["user_id"] = principal_id
+        else:
+            session["user_id"] = principal_id
         purge_expired_trash(session["user_id"])
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def super_admin_required(view):
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        principal_id = session.get("principal_id", session["user_id"])
+        user = query_one("SELECT role, is_active FROM users WHERE id = %s", (principal_id,))
+        if not user or user.get("role") != "super-admin" or not user.get("is_active"):
+            abort(403)
         return view(*args, **kwargs)
     return wrapped
 
@@ -265,6 +308,13 @@ def login_or_public_link_required(view):
                 flash("Your session expired after 7 days of inactivity. Please sign in again.", "error")
                 return redirect(url_for("login"))
         else:
+            principal_id = session.get("principal_id", session["user_id"])
+            principal = query_one("SELECT role, is_active FROM users WHERE id = %s", (principal_id,))
+            if not principal or not principal.get("is_active") or principal.get("role") not in {"admin", "super-admin"}:
+                session.clear()
+                if not share_context:
+                    abort(403)
+                return view(*args, **kwargs)
             touch_authenticated_session()
             purge_expired_trash(session["user_id"])
         return view(*args, **kwargs)
@@ -1793,7 +1843,7 @@ def utility_processor():
     return {
         "readable_size": readable_size,
         "display_item_size": display_item_size,
-        "max_file_size_mb": MAX_FILE_SIZE_MB,
+        "max_file_size_mb": current_upload_limit_mb(),
         "clean_file_type": clean_file_type,
         "file_type_key": file_type_key,
         "file_type_icon": file_type_icon,
@@ -1892,11 +1942,11 @@ def register():
     if "user_id" in session:
         return redirect_to_workspace()
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
+        email = request.form.get("email", "").strip().lower() or None
         username = request.form.get("username", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
-        if not email or "@" not in email:
+        if email and "@" not in email:
             flash("Enter a valid email address.", "error")
         elif not re.fullmatch(r"[a-z0-9_]{3,20}", username):
             flash("Username must be 3-20 characters using letters, numbers, or underscores.", "error")
@@ -1909,12 +1959,13 @@ def register():
             try:
                 cursor = get_db().cursor()
                 cursor.execute(
-                    "INSERT INTO users (email, username, password_hash) VALUES (%s, %s, %s)",
+                    "INSERT INTO users (email, username, password_hash, role) VALUES (%s, %s, %s, NULL)",
                     (email, username, generate_password_hash(password)),
                 )
                 get_db().commit()
-                send_welcome_email(email)
-                flash("Account created. Please check your email and sign in.", "success")
+                if email:
+                    send_welcome_email(email)
+                flash("Account created. Please sign in.", "success")
                 return redirect(url_for("login"))
             except MySQLError as error:
                 get_db().rollback()
@@ -1945,15 +1996,19 @@ def login_post():
     else:
         try:
             user = query_one(
-                "SELECT id, email, username, password_hash FROM users "
-                "WHERE email = %s OR username = %s LIMIT 1",
+                "SELECT id, email, username, password_hash, role, is_active FROM users "
+                "WHERE username = %s OR email = %s LIMIT 1",
                 (identifier, identifier),
             )
-            if not user or not check_password_hash(user["password_hash"], password):
+            if not user or not user.get("is_active") or not check_password_hash(user["password_hash"], password):
                 flash("Invalid email/username or password.", "error")
+            elif user.get("role") is None:
+                flash("This account has public viewer access only. Open a public sharing link to view shared items.", "error")
             else:
                 session.clear()
                 session["user_id"] = user["id"]
+                session["principal_id"] = user["id"]
+                session["role"] = user["role"]
                 session["username"] = user["username"] or user["email"]
                 try:
                     session["theme_preference"] = user_preferences(user["id"]).get("theme_preference") or "light"
@@ -2032,7 +2087,7 @@ def settings():
         is_shared_workspace=False,
         is_event_date_workspace=False,
         event_id=None,
-        max_file_size_mb=MAX_FILE_SIZE_MB,
+        max_file_size_mb=current_upload_limit_mb(),
         offline_cache_scope=current_offline_cache_scope(),
         theme_preference=preferences.get("theme_preference") or "light",
     )
@@ -2044,12 +2099,12 @@ def update_settings_account():
     user_id = session["user_id"]
     display_name_value = request.form.get("display_name", "").strip()
     username = request.form.get("username", "").strip().lower()
-    email = request.form.get("email", "").strip().lower()
+    email = request.form.get("email", "").strip().lower() or None
     if len(display_name_value) > 80:
         flash("Display name must be 80 characters or fewer.", "error")
     elif not re.fullmatch(r"[a-z0-9_]{3,20}", username):
         flash("Username must be 3-20 characters using letters, numbers, or underscores.", "error")
-    elif not email or "@" not in email or len(email) > 255:
+    elif email and ("@" not in email or len(email) > 255):
         flash("Enter a valid email address.", "error")
     else:
         cursor = None
@@ -2074,6 +2129,162 @@ def update_settings_account():
             if cursor:
                 cursor.close()
     return redirect(url_for("settings"))
+
+
+@app.route("/admin/users", methods=["GET", "POST"])
+@super_admin_required
+def manage_users():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower() or None
+        username = request.form.get("username", "").strip().lower()
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm_password", "")
+        role = request.form.get("role", "")
+        if not re.fullmatch(r"[a-z0-9_]{3,20}", username):
+            flash("Username must be 3-20 characters using letters, numbers, or underscores.", "error")
+        elif email and ("@" not in email or len(email) > 255):
+            flash("Enter a valid email address or leave it blank.", "error")
+        elif not password or len(password) < 6:
+            flash("Password must be at least 6 characters.", "error")
+        elif password != confirm:
+            flash("Passwords do not match.", "error")
+        elif role not in {"admin", ""}:
+            flash("Choose a valid role.", "error")
+        else:
+            cursor = get_db().cursor()
+            try:
+                cursor.execute("INSERT INTO users (email, username, password_hash, role) VALUES (%s, %s, %s, %s)",
+                               (email, username, generate_password_hash(password), role or None))
+                get_db().commit()
+                flash("User created.", "success")
+            except MySQLError as error:
+                get_db().rollback()
+                flash("That username or email is already in use." if getattr(error, "errno", None) == 1062 else "Unable to create user.", "error")
+            finally:
+                cursor.close()
+    users = query_all(
+        "SELECT u.id, u.email, u.username, u.role, u.is_active, u.created_at, "
+        "COALESCE((SELECT SUM(f.file_size) FROM files f WHERE f.user_id = u.id AND f.is_deleted = FALSE), 0) AS storage_used, "
+        "(SELECT COUNT(*) FROM files f WHERE f.user_id = u.id) AS file_count, "
+        "(SELECT COUNT(*) FROM events e WHERE e.user_id = u.id) AS event_count "
+        "FROM users u ORDER BY u.id"
+    )
+    return render_template("admin_users.html", users=users)
+
+
+@app.post("/admin/users/<int:user_id>/workspace")
+@super_admin_required
+def select_user_workspace(user_id):
+    if not query_one("SELECT id FROM users WHERE id = %s", (user_id,)):
+        abort(404)
+    session["user_id"] = user_id
+    session[OFFLINE_CACHE_SCOPE_KEY] = secrets.token_urlsafe(24)
+    if request.form.get("open_events") == "1":
+        return redirect(url_for("dashboard", section="events"))
+    return redirect(url_for("dashboard"))
+
+
+@app.post("/admin/users/workspace/clear")
+@super_admin_required
+def clear_user_workspace():
+    session["user_id"] = session.get("principal_id", session["user_id"])
+    session[OFFLINE_CACHE_SCOPE_KEY] = secrets.token_urlsafe(24)
+    return redirect(url_for("manage_users"))
+
+
+@app.post("/admin/users/<int:user_id>/active")
+@super_admin_required
+def set_user_active(user_id):
+    active = request.form.get("active") == "1"
+    if not active and request.form.get("confirm_deactivate") != "1":
+        abort(400)
+    if user_id == session.get("principal_id", session["user_id"]):
+        abort(400)
+    cursor = get_db().cursor()
+    try:
+        if not active:
+            cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'super-admin' AND is_active = TRUE")
+            if cursor.fetchone()[0] <= 1:
+                abort(400, "The last active Super Admin cannot be deactivated.")
+        cursor.execute("UPDATE users SET is_active = %s WHERE id = %s", (active, user_id))
+        get_db().commit()
+        flash("User reactivated." if active else "User deactivated.", "success")
+    except Exception:
+        get_db().rollback()
+        raise
+    finally:
+        cursor.close()
+    return redirect(url_for("manage_users"))
+
+
+@app.route("/admin/shares", methods=["GET", "POST"])
+@super_admin_required
+def manage_public_shares():
+    if request.method == "POST":
+        kind = request.form.get("kind")
+        raw_id = request.form.get("item_id", "")
+        enabled = request.form.get("enabled") == "1"
+        table = {"file": "files", "folder": "folders", "event": "events"}.get(kind)
+        if not table or not raw_id.isdigit():
+            abort(400)
+        token = secrets.token_urlsafe(32) if enabled else None
+        cursor = get_db().cursor()
+        try:
+            cursor.execute(f"UPDATE {table} SET share_token = %s WHERE id = %s", (token, int(raw_id)))
+            get_db().commit()
+        finally:
+            cursor.close()
+        flash("Sharing enabled." if enabled else "Public share disabled.", "success")
+        return redirect(url_for("manage_public_shares"))
+    shares = query_all(
+        "SELECT 'file' AS kind, f.id, f.user_id, u.username, f.original_filename AS name, f.share_token IS NOT NULL AND f.share_token <> '' AS enabled "
+        "FROM files f JOIN users u ON u.id = f.user_id UNION ALL "
+        "SELECT 'folder', d.id, d.user_id, u.username, d.name, d.share_token IS NOT NULL AND d.share_token <> '' FROM folders d JOIN users u ON u.id = d.user_id UNION ALL "
+        "SELECT 'event', e.id, e.user_id, u.username, e.name, e.share_token IS NOT NULL AND e.share_token <> '' FROM events e JOIN users u ON u.id = e.user_id ORDER BY username, kind, name"
+    )
+    return render_template("admin_shares.html", shares=shares)
+
+
+@app.route("/admin/settings", methods=["GET", "POST"])
+@super_admin_required
+def system_settings():
+    if request.method == "POST":
+        raw_limit = request.form.get("max_file_size_mb", "")
+        if not raw_limit.isdigit() or not 1 <= int(raw_limit) <= MAX_FILE_SIZE_MB:
+            flash(f"Upload limit must be between 1 and {MAX_FILE_SIZE_MB} MB.", "error")
+        else:
+            cursor = get_db().cursor()
+            try:
+                cursor.execute(
+                    "INSERT INTO system_settings (setting_key, setting_value) VALUES (%s, %s) "
+                    "ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                    ("max_file_size_mb", str(int(raw_limit))),
+                )
+                get_db().commit()
+                flash("System settings saved.", "success")
+            except MySQLError:
+                get_db().rollback()
+                app.logger.exception("System settings update failed")
+                flash("Unable to save system settings.", "error")
+            finally:
+                cursor.close()
+    return render_template("admin_settings.html", max_file_size_mb=current_upload_limit_mb(), max_allowed_file_size_mb=MAX_FILE_SIZE_MB)
+
+
+@app.post("/admin/users/<int:user_id>/role")
+@super_admin_required
+def update_user_role(user_id):
+    role = request.form.get("role", "")
+    if role not in {"admin", ""} or user_id == session.get("principal_id", session["user_id"]):
+        abort(400)
+    cursor = get_db().cursor()
+    try:
+        cursor.execute("UPDATE users SET role = %s WHERE id = %s", (role or None, user_id))
+        get_db().commit()
+        flash("User role updated.", "success")
+    finally:
+        cursor.close()
+    return redirect(url_for("manage_users"))
 
 
 @app.post("/settings/password")
@@ -2911,6 +3122,8 @@ def upload():
             parent_id = folder_cache[cache_key]
         return parent_id
 
+    upload_limit_mb = current_upload_limit_mb()
+    upload_limit_bytes = upload_limit_mb * 1024 * 1024
     for index, incoming in enumerate(incoming_files):
         if incoming is None or not incoming.filename:
             results.append({"name": "", "status": "error", "message": "No file selected."})
@@ -2927,8 +3140,8 @@ def upload():
         if file_size <= 0:
             results.append({"name": original_name, "status": "error", "message": "Empty files cannot be uploaded."})
             continue
-        if file_size > MAX_FILE_SIZE_BYTES:
-            results.append({"name": original_name, "status": "error", "message": f"Files must be {MAX_FILE_SIZE_MB} MB or smaller."})
+        if file_size > upload_limit_bytes:
+            results.append({"name": original_name, "status": "error", "message": f"Files must be {upload_limit_mb} MB or smaller."})
             continue
 
         try:
@@ -4333,9 +4546,9 @@ def too_large(_error):
         return jsonify({
             "ok": False,
             "uploaded": 0,
-            "results": [{"name": "", "status": "error", "message": f"Files must be {MAX_FILE_SIZE_MB} MB or smaller."}],
+            "results": [{"name": "", "status": "error", "message": f"Files must be {current_upload_limit_mb()} MB or smaller."}],
         }), 413
-    flash(f"Files must be {MAX_FILE_SIZE_MB} MB or smaller.", "error")
+    flash(f"Files must be {current_upload_limit_mb()} MB or smaller.", "error")
     return redirect(url_for("dashboard") if "user_id" in session else url_for("login"))
 
 

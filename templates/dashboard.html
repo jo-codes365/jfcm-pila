@@ -36,6 +36,9 @@
       {% else %}
       <button id="events-calendar-button" class="button secondary events-calendar-button" type="button" aria-haspopup="dialog" aria-controls="events-calendar-modal" aria-expanded="false" title="Events Calendar"><i class="bi bi-calendar-date" aria-hidden="true"></i></button>
       {% endif %}
+      {% if session.get('role') == 'super-admin' and session.get('principal_id', session.get('user_id')) != session.get('user_id') %}
+      <form method="post" action="{{ url_for('clear_user_workspace') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button secondary" type="submit">Exit user workspace</button></form>
+      {% endif %}
       <!-- profile dropdown to display edit profile, sign out... -->
     </header>
     {% if is_public_workspace and public_workspace_kind|default('files') == 'files' and not is_shared_workspace and latest_public_event %}

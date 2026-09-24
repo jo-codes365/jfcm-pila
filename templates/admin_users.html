@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Manage Users | JFCM Library{% endblock %}
+{% block content %}
+<main class="auth-page"><section class="auth-card" style="max-width:1100px;width:100%">
+  <h1>Manage users</h1>
+  <p><a href="{{ url_for('manage_public_shares') }}">Manage public sharing</a> · <a href="{{ url_for('system_settings') }}">System settings</a></p>
+  <h2>Create user</h2>
+  <form method="post" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Email (optional)</label><input name="email" type="email" maxlength="255">
+    <label>Username</label><input name="username" required minlength="3" maxlength="20" pattern="[a-z0-9_]{3,20}">
+    <label>Password</label><input name="password" required minlength="6" type="password">
+    <label>Confirm password</label><input name="confirm_password" required minlength="6" type="password">
+    <label>Role</label><select name="role"><option value="admin">Admin</option><option value="">Public Viewer</option></select>
+    <button class="button primary" type="submit">Create user</button>
+  </form>
+  <h2>Accounts</h2>
+  <div style="overflow-x:auto"><table><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Storage</th><th>Files</th><th>Events</th><th>Actions</th></tr></thead><tbody>
+  {% for user in users %}<tr>
+    <td>{{ user.username }}</td><td>{{ user.email or '—' }}</td><td>{{ user.role or 'Public Viewer' }}</td><td>{{ 'Active' if user.is_active else 'Deactivated' }}</td>
+    <td>{{ readable_size(user.storage_used or 0) }}</td><td>{{ user.file_count }}</td><td>{{ user.event_count }}</td><td>
+      <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Manage Files</button></form>
+      <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="section" value="events"><button type="submit" name="open_events" value="1">Manage Events</button></form>
+      {% if user.id != session.get('principal_id', session.get('user_id')) %}
+      {% if user.role != 'super-admin' %}<form method="post" action="{{ url_for('update_user_role', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><select name="role"><option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option><option value="" {% if not user.role %}selected{% endif %}>Public Viewer</option></select><button type="submit">Change Role</button></form>{% endif %}
+      <form method="post" action="{{ url_for('set_user_active', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 0 if user.is_active else 1 }}">{% if user.is_active %}<label><input type="checkbox" name="confirm_deactivate" value="1" required> Confirm deactivation</label><button type="submit">Deactivate</button>{% else %}<button type="submit">Reactivate</button>{% endif %}</form>
+      {% endif %}
+    </td>
+  </tr>{% endfor %}</tbody></table></div>
+  <form method="post" action="{{ url_for('clear_user_workspace') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Return to Super Admin workspace</button></form>
+  <p><a href="{{ url_for('settings') }}">Back to settings</a></p>
+</section></main>
+{% endblock %}

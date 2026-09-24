@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Public Sharing | JFCM Library{% endblock %}
+{% block content %}
+<main class="auth-page"><section class="auth-card" style="max-width:1100px;width:100%">
+  <h1>Public sharing</h1><p>Share tokens are never displayed on this page. Disabling a share revokes its current link; enabling creates a new link.</p>
+  <div style="overflow-x:auto"><table><thead><tr><th>Owner</th><th>Type</th><th>Name</th><th>Status</th><th>Action</th></tr></thead><tbody>
+  {% for share in shares %}<tr><td>{{ share.username }}</td><td>{{ share.kind|title }}</td><td>{{ share.name }}</td><td>{{ 'Enabled' if share.enabled else 'Disabled' }}</td><td>
+    <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="{{ share.kind }}"><input type="hidden" name="item_id" value="{{ share.id }}"><input type="hidden" name="enabled" value="{{ 0 if share.enabled else 1 }}"><button type="submit">{{ 'Disable' if share.enabled else 'Enable' }}</button></form>
+  </td></tr>{% endfor %}</tbody></table></div>
+  <p><a href="{{ url_for('manage_users') }}">Back to users</a></p>
+</section></main>
+{% endblock %}

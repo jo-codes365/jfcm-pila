@@ -1,0 +1,4 @@
+USE railway;
+
+ALTER TABLE users
+  ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;

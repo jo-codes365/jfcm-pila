@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}System Settings | JFCM Library{% endblock %}
+{% block content %}
+<main class="auth-page"><section class="auth-card">
+  <h1>System settings</h1><p>These settings apply across the application.</p>
+  <form method="post" class="stack-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Maximum file size (MB; server maximum {{ max_allowed_file_size_mb }} MB)</label>
+    <input type="number" name="max_file_size_mb" min="1" max="{{ max_allowed_file_size_mb }}" required value="{{ max_file_size_mb }}">
+    <p class="field-help">The web server's request ceiling remains controlled by deployment configuration.</p>
+    <button class="button primary" type="submit">Save system setting</button>
+  </form>
+  <p><a href="{{ url_for('manage_users') }}">Back to users</a></p>
+</section></main>
+{% endblock %}

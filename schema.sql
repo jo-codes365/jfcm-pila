@@ -3,15 +3,18 @@ USE railway;
 
 CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NULL,
     username VARCHAR(20) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NULL DEFAULT 'admin',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_email (email),
     UNIQUE KEY uq_users_username (username),
-    KEY idx_users_created_at (created_at)
+    KEY idx_users_created_at (created_at),
+    CONSTRAINT chk_users_role CHECK (role IS NULL OR role IN ('admin', 'super-admin'))
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS user_preferences (
@@ -21,6 +24,13 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id),
     CONSTRAINT fk_user_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    setting_key VARCHAR(64) NOT NULL,
+    setting_value VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (setting_key)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS folders (

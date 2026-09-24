@@ -20,6 +20,7 @@
         <div class="settings-page">
           <div class="settings-intro"><h1>Settings</h1><p>Manage your account, appearance, saved offline files, and storage details.</p></div>
           <p id="settings-search-empty" class="settings-search-empty" role="status" hidden>No matching settings</p>
+          {% if session.get('role') == 'super-admin' %}<p><a class="button secondary" href="{{ url_for('manage_users') }}">Manage users</a></p>{% endif %}
 
           <section class="settings-section" aria-labelledby="account-settings-title">
             <div class="settings-section-heading"><i class="bi bi-person"></i><div><h2 id="account-settings-title">Account</h2><p>Changes apply only to your signed-in account.</p></div></div>
@@ -27,7 +28,7 @@
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <label>Display name<input name="display_name" maxlength="80" value="{{ preferences.display_name or '' }}" autocomplete="name"></label>
               <label>Username<input name="username" required pattern="[a-z0-9_]{3,20}" value="{{ account.username }}" autocomplete="username"></label>
-              <label>Email address<input name="email" required type="email" maxlength="255" value="{{ account.email }}" autocomplete="email"></label>
+              <label>Email address<input name="email" type="email" maxlength="255" value="{{ account.email or '' }}" autocomplete="email"></label>
               <div class="settings-form-actions"><button class="button primary" type="submit">Save account details</button></div>
             </form>
             <form class="settings-form settings-subsection" method="post" action="{{ url_for('update_settings_password') }}">

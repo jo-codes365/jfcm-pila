@@ -7,11 +7,11 @@
       <img src="{{ url_for('static', filename='images/JF.png') }}" alt="JFCM Pila" class="brand-logo">
     </a>
     <h1>Create your account</h1>
-    <p class="muted">Sign up with your email and password</p>
+      <p class="muted">Sign up with a username and password. Email is optional.</p>
     <form method="post" class="stack-form" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> 
       <label for="email">Email</label>
-      <input id="email" name="email" type="email" autocomplete="email" required>
+      <input id="email" name="email" type="email" autocomplete="email">
       <label for="username">Username</label>
       <input id="username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="20">
       <label for="password">Password</label>
