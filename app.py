@@ -2090,6 +2090,8 @@ def login_post():
                 session[OFFLINE_CACHE_SCOPE_KEY] = secrets.token_urlsafe(24)
                 touch_authenticated_session()
                 record_audit_action(user["id"], "User logged in")
+                if user["role"] == "super-admin":
+                    return redirect(url_for("super_admin_dashboard"))
                 return redirect(url_for("dashboard"))
         except MySQLError:
             app.logger.exception("Login database error")

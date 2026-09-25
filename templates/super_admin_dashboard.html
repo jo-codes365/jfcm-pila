@@ -13,16 +13,6 @@
         <div class="settings-page super-admin-dashboard">
           <div class="settings-intro"><h1>Dashboard</h1><p>A quick overview of recent activity, upcoming Events, and users.</p></div>
           <div class="super-admin-dashboard-grid">
-            <section class="settings-section dashboard-panel" aria-labelledby="dashboard-activity-title">
-              <div class="settings-section-heading dashboard-panel-heading"><i class="bi bi-activity"></i><div><h2 id="dashboard-activity-title">Recent Activity</h2><p>Latest actions by users.</p></div><a class="button secondary" href="{{ url_for('audit_trail') }}">View All</a></div>
-              <ul class="dashboard-activity-list">
-                {% for activity in recent_activity %}
-                <li><div><strong>{{ activity.action }}</strong>{% if activity.item %}<span>{{ format_item_label(activity.item) }}</span>{% endif %}</div><div class="dashboard-activity-meta"><span>{{ activity.username }}</span><time>{{ format_datetime(activity.created_at) }}</time></div></li>
-                {% else %}
-                <li class="dashboard-empty">No recent activity.</li>
-                {% endfor %}
-              </ul>
-            </section>
             <section class="settings-section dashboard-panel" aria-labelledby="dashboard-events-title">
               <div class="settings-section-heading dashboard-panel-heading"><i class="bi bi-calendar-date"></i><div><h2 id="dashboard-events-title">Events Overview</h2><p>Recent Events across all users.</p></div><a class="button secondary" href="{{ url_for('dashboard', section='events') }}">View All</a></div>
               <ul class="dashboard-event-list">
@@ -30,6 +20,16 @@
                 <li><a href="{{ url_for('dashboard', section='events', event=event.id) }}"><span class="dashboard-event-name"><img src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt="" aria-hidden="true"><span>{{ format_item_label(event.name) }}</span></span><time datetime="{{ event.event_date.isoformat() }}">{{ event.event_date.strftime('%b ') }}{{ event.event_date.day }}, {{ event.event_date.strftime('%Y') }}</time></a></li>
                 {% else %}
                 <li class="dashboard-empty">No Events.</li>
+                {% endfor %}
+              </ul>
+            </section>
+            <section class="settings-section dashboard-panel" aria-labelledby="dashboard-activity-title">
+              <div class="settings-section-heading dashboard-panel-heading"><i class="bi bi-activity"></i><div><h2 id="dashboard-activity-title">Recent Activity</h2><p>Latest actions by users.</p></div><a class="button secondary" href="{{ url_for('audit_trail') }}">View All</a></div>
+              <ul class="dashboard-activity-list">
+                {% for activity in recent_activity %}
+                <li><div><strong>{{ activity.action }}</strong>{% if activity.item %}<span>{{ format_item_label(activity.item) }}</span>{% endif %}</div><div class="dashboard-activity-meta"><span>{{ activity.username }}</span><time>{{ format_datetime(activity.created_at) }}</time></div></li>
+                {% else %}
+                <li class="dashboard-empty">No recent activity.</li>
                 {% endfor %}
               </ul>
             </section>
