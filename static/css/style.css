@@ -5641,6 +5641,36 @@ hr {
 .admin-user-actions form { margin: 0; }
 .admin-user-actions button,
 .admin-user-actions select { max-width: 100%; }
+.audit-trail-table-wrap {
+  max-height: min(65vh, 720px);
+  overflow: auto;
+  max-width: 100%;
+  overscroll-behavior: contain;
+}
+.audit-trail-table {
+  display: table;
+  width: 100%;
+  min-width: 720px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.audit-trail-table thead { display: table-header-group; }
+.audit-trail-table tbody { display: table-row-group; }
+.audit-trail-table tbody tr { display: table-row; }
+.audit-trail-table th,
+.audit-trail-table td {
+  display: table-cell;
+  padding: 14px 18px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.audit-trail-table th:nth-child(1), .audit-trail-table td:nth-child(1) { width: 24%; }
+.audit-trail-table th:nth-child(2), .audit-trail-table td:nth-child(2) { width: 18%; }
+.audit-trail-table th:nth-child(3), .audit-trail-table td:nth-child(3) { width: 27%; }
+.audit-trail-table th:nth-child(4), .audit-trail-table td:nth-child(4) { width: 31%; }
+.audit-trail-table th { position: sticky; top: 0; z-index: 2; background: var(--surface, #fff); }
 
 @media (max-width: 480px) {
   .settings-workspace-content:has(.admin-users-table) {
@@ -5656,6 +5686,8 @@ hr {
     overscroll-behavior-x: contain;
   }
   .admin-users-table { min-width: 1100px; }
+  .audit-trail-table-wrap { width: 100%; overflow-x: auto; overflow-y: auto; }
+  .audit-trail-table { min-width: 720px; }
 }
 
 /* Create User modal in Super Admin Settings */

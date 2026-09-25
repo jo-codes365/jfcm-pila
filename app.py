@@ -61,6 +61,7 @@ if not PRESENTATION_PRE_RENDERED_FOLDER.is_absolute():
     PRESENTATION_PRE_RENDERED_FOLDER = BASE_DIR / PRESENTATION_PRE_RENDERED_FOLDER
 
 app = Flask(__name__)
+AUDIT_LOG_TABLE_READY = False
 app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY", "change-this-before-production"),
     MAX_CONTENT_LENGTH=MAX_FILE_SIZE_BYTES + UPLOAD_REQUEST_OVERHEAD_BYTES,
@@ -189,6 +190,48 @@ def ensure_user_preferences_table():
         get_db().commit()
     finally:
         cursor.close()
+
+
+def ensure_audit_log_table():
+    """Create the audit log for installations that have not applied schema.sql."""
+    global AUDIT_LOG_TABLE_READY
+    if AUDIT_LOG_TABLE_READY:
+        return
+    cursor = get_db().cursor()
+    try:
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS audit_logs ("
+            "id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, "
+            "user_id INT UNSIGNED NULL, username VARCHAR(20) NOT NULL, "
+            "action VARCHAR(80) NOT NULL, item VARCHAR(255) NOT NULL DEFAULT '', "
+            "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, "
+            "PRIMARY KEY (id), KEY idx_audit_logs_created_at (created_at), "
+            "KEY idx_audit_logs_user_id (user_id)"
+            ") ENGINE=InnoDB"
+        )
+        get_db().commit()
+        AUDIT_LOG_TABLE_READY = True
+    finally:
+        cursor.close()
+
+
+def record_audit_action(user_id, action, item=""):
+    """Store a short, user-facing audit entry without sensitive request data."""
+    try:
+        ensure_audit_log_table()
+        cursor = get_db().cursor()
+        try:
+            cursor.execute(
+                "INSERT INTO audit_logs (user_id, username, action, item) "
+                "SELECT id, username, %s, %s FROM users WHERE id = %s",
+                (str(action)[:80], str(item or "")[:255], user_id),
+            )
+            get_db().commit()
+        finally:
+            cursor.close()
+    except MySQLError:
+        get_db().rollback()
+        app.logger.exception("Could not record audit action")
 
 
 def query_all(sql, values=()):
@@ -2046,6 +2089,7 @@ def login_post():
                     session["theme_preference"] = "light"
                 session[OFFLINE_CACHE_SCOPE_KEY] = secrets.token_urlsafe(24)
                 touch_authenticated_session()
+                record_audit_action(user["id"], "User logged in")
                 return redirect(url_for("dashboard"))
         except MySQLError:
             app.logger.exception("Login database error")
@@ -2055,6 +2099,9 @@ def login_post():
 
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
+    user_id = session.get("principal_id", session.get("user_id"))
+    if user_id:
+        record_audit_action(user_id, "User logged out")
     session.clear()
     flash("You have been signed out.", "success")
     return redirect(url_for("login"))
@@ -2180,6 +2227,37 @@ def settings():
     )
 
 
+@app.get("/admin/audit-trail")
+@super_admin_required
+def audit_trail():
+    try:
+        ensure_audit_log_table()
+        records = query_all(
+            "SELECT created_at, username, action, item FROM audit_logs "
+            "ORDER BY created_at DESC, id DESC LIMIT 2000"
+        )
+        sidebar_events = query_all(
+            "SELECT id, name, event_date, event_type FROM events "
+            "WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name",
+            (session.get("user_id", session.get("principal_id")),),
+        )
+        storage = query_one("SELECT COALESCE(SUM(file_size), 0) AS used FROM files WHERE is_deleted = FALSE", ())
+    except MySQLError:
+        app.logger.exception("Audit trail database error")
+        abort(500)
+    return render_template(
+        "audit_trail.html",
+        records=records,
+        sidebar_events=sidebar_events,
+        section="audit-trail",
+        is_public_workspace=False,
+        is_shared_workspace=False,
+        is_event_date_workspace=False,
+        event_id=None,
+        total_storage=storage["used"] if storage else 0,
+    )
+
+
 @app.post("/settings/account")
 @login_required
 def update_settings_account():
@@ -2200,6 +2278,7 @@ def update_settings_account():
             )
             get_db().commit()
             session["username"] = username
+            record_audit_action(user_id, "User updated", username)
             flash("Account details updated.", "success")
         except MySQLError as error:
             get_db().rollback()
@@ -2239,6 +2318,7 @@ def manage_users():
                 cursor.execute("INSERT INTO users (email, username, password_hash, role) VALUES (%s, %s, %s, %s)",
                                (email, username, generate_password_hash(password), role or None))
                 get_db().commit()
+                record_audit_action(session.get("principal_id", session["user_id"]), "User created", username)
                 flash("User created.", "success")
             except MySQLError as error:
                 get_db().rollback()
@@ -2285,6 +2365,9 @@ def set_user_active(user_id):
         abort(400)
     if user_id == session.get("principal_id", session["user_id"]):
         abort(400)
+    target_user = query_one("SELECT username FROM users WHERE id = %s", (user_id,))
+    if not target_user:
+        abort(404)
     cursor = get_db().cursor()
     try:
         if not active:
@@ -2293,6 +2376,7 @@ def set_user_active(user_id):
                 abort(400, "The last active Super Admin cannot be deactivated.")
         cursor.execute("UPDATE users SET is_active = %s WHERE id = %s", (active, user_id))
         get_db().commit()
+        record_audit_action(session.get("principal_id", session["user_id"]), "User reactivated" if active else "User deactivated", target_user["username"])
         flash("User reactivated." if active else "User deactivated.", "success")
     except Exception:
         get_db().rollback()
@@ -2312,11 +2396,17 @@ def manage_public_shares():
         table = {"file": "files", "folder": "folders", "event": "events"}.get(kind)
         if not table or not raw_id.isdigit():
             abort(400)
+        name_column = "original_filename" if kind == "file" else "name"
+        share_record = query_one(f"SELECT {name_column} AS name FROM {table} WHERE id = %s", (int(raw_id),))
+        if not share_record:
+            abort(404)
         token = secrets.token_urlsafe(32) if enabled else None
         cursor = get_db().cursor()
         try:
             cursor.execute(f"UPDATE {table} SET share_token = %s WHERE id = %s", (token, int(raw_id)))
             get_db().commit()
+            sharing_action = "Sharing disabled" if not enabled else "File shared" if kind == "file" else "Sharing enabled"
+            record_audit_action(session.get("principal_id", session["user_id"]), sharing_action, share_record["name"])
         finally:
             cursor.close()
         flash("Sharing enabled." if enabled else "Public share disabled.", "success")
@@ -2346,6 +2436,7 @@ def system_settings():
                     ("max_file_size_mb", str(int(raw_limit))),
                 )
                 get_db().commit()
+                record_audit_action(session.get("principal_id", session["user_id"]), "Settings changed", "Upload limit")
                 flash("System settings saved.", "success")
             except MySQLError:
                 get_db().rollback()
@@ -2362,10 +2453,14 @@ def update_user_role(user_id):
     role = request.form.get("role", "")
     if role not in {"admin", ""} or user_id == session.get("principal_id", session["user_id"]):
         abort(400)
+    target_user = query_one("SELECT username FROM users WHERE id = %s", (user_id,))
+    if not target_user:
+        abort(404)
     cursor = get_db().cursor()
     try:
         cursor.execute("UPDATE users SET role = %s WHERE id = %s", (role or None, user_id))
         get_db().commit()
+        record_audit_action(session.get("principal_id", session["user_id"]), "User role changed", target_user["username"])
         flash("User role updated.", "success")
     finally:
         cursor.close()
@@ -2393,6 +2488,7 @@ def update_settings_password():
                 (generate_password_hash(new_password), session["user_id"]),
             )
             get_db().commit()
+            record_audit_action(session["user_id"], "Settings changed", "Password")
             flash("Password changed.", "success")
         except MySQLError:
             get_db().rollback()
@@ -2412,6 +2508,7 @@ def update_settings_theme():
     try:
         save_user_preferences(session["user_id"], theme_preference=theme_preference)
         session["theme_preference"] = theme_preference
+        record_audit_action(session["user_id"], "Settings changed", "Appearance")
         flash("Appearance preference saved.", "success")
     except MySQLError:
         get_db().rollback()
@@ -3304,6 +3401,7 @@ def upload():
                 ),
             )
             get_db().commit()
+            record_audit_action(session.get("principal_id", session["user_id"]), "File uploaded", original_name)
             uploaded += 1
             results.append({"name": original_name, "status": "success", "message": "File uploaded successfully."})
         except MySQLError:
@@ -3345,6 +3443,8 @@ def download(file_id):
     if not path.is_file():
         flash("This file is no longer available on the server.", "error")
         return redirect(workspace_return_url())
+    if session.get("user_id"):
+        record_audit_action(session.get("principal_id", session["user_id"]), "File downloaded", record["original_filename"])
     return send_from_directory(directory, record["stored_filename"], as_attachment=True, download_name=record["original_filename"])
 
 
@@ -3394,6 +3494,8 @@ def download_folder(folder_id):
                     bundle.write(path, arcname=f"{relative_paths[item['folder_id']]}/{item['original_filename']}")
 
         archive.seek(0)
+        if session.get("user_id"):
+            record_audit_action(session.get("principal_id", session["user_id"]), "Folder downloaded", folder["name"])
         return send_file(
             archive,
             as_attachment=True,
@@ -3416,6 +3518,8 @@ def download_event(event_id):
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
         write_event_archive(bundle, event)
     archive.seek(0)
+    if session.get("user_id"):
+        record_audit_action(session.get("principal_id", session["user_id"]), "Event downloaded", event["name"])
     return send_file(
         archive,
         as_attachment=True,
@@ -3830,6 +3934,7 @@ def delete(file_id):
         cursor = get_db().cursor()
         cursor.execute("UPDATE files SET original_folder_id = folder_id, is_deleted = TRUE, deleted_at = NOW() WHERE id = %s AND user_id = %s", (file_id, record["user_id"]))
         get_db().commit()
+        record_audit_action(session.get("principal_id", session["user_id"]), "File deleted", record["original_filename"])
         cursor.close()
         flash("File moved to Trash.", "danger")
     except MySQLError:
@@ -3863,6 +3968,7 @@ def create_folder():
                 (folder_owner_id, parent_id, event_id, name, secrets.token_urlsafe(32)),
             )
             get_db().commit()
+            record_audit_action(session.get("principal_id", session["user_id"]), "Folder created", name)
             flash("Folder created.", "success")
         except MySQLError:
             get_db().rollback()
@@ -3898,6 +4004,7 @@ def create_event():
             (session["user_id"], name, event_date, event_type, secrets.token_urlsafe(32)),
         )
         get_db().commit()
+        record_audit_action(session.get("principal_id", session["user_id"]), "Event created", name)
         flash("Event created.", "success")
     except MySQLError:
         get_db().rollback()
@@ -3947,6 +4054,7 @@ def rename_item():
         if cursor.rowcount != 1:
             abort(404)
         get_db().commit()
+        record_audit_action(session.get("principal_id", session["user_id"]), "File renamed" if kind == "file" else "Folder renamed", safe_name)
         flash("Item renamed.", "success")
     except MySQLError:
         get_db().rollback()
@@ -3983,6 +4091,7 @@ def update_event():
         if cursor.rowcount != 1:
             abort(404)
         get_db().commit()
+        record_audit_action(session.get("principal_id", session["user_id"]), "Event updated", safe_name)
         flash("Event updated.", "success")
     except MySQLError:
         get_db().rollback()
@@ -4011,6 +4120,9 @@ def star_items():
         try:
             cursor.execute(f"UPDATE {table} SET is_starred = %s WHERE id = %s AND user_id = %s AND is_deleted = FALSE", (starred, item_id, record["user_id"]))
             get_db().commit()
+            item_name = record.get("original_filename") if kind == "file" else record.get("name", "")
+            item_type = {"file": "File", "folder": "Folder", "event": "Event"}[kind]
+            record_audit_action(session.get("principal_id", session["user_id"]), f"{item_type} {'starred' if starred else 'unstarred'}", item_name)
         finally:
             cursor.close()
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -4119,6 +4231,9 @@ def move_items():
                     (destination_event_id, record["user_id"], *subtree_ids),
                 )
         get_db().commit()
+        for kind, record, _subtree_ids in operations:
+            item_name = record.get("original_filename") if kind == "file" else record.get("name", "")
+            record_audit_action(session.get("principal_id", session["user_id"]), "File moved" if kind == "file" else "Folder moved", item_name)
     except MySQLError:
         get_db().rollback()
         raise
@@ -4224,6 +4339,9 @@ def move_event_items():
                 (destination_event_id, record["user_id"], *subtree_ids),
             )
         get_db().commit()
+        for kind, record, _subtree_ids in operations:
+            item_name = record.get("original_filename") if kind == "file" else record.get("name", "")
+            record_audit_action(session.get("principal_id", session["user_id"]), "File moved" if kind == "file" else "Folder moved", item_name)
     except MySQLError:
         get_db().rollback()
         raise
@@ -4286,6 +4404,9 @@ def trash_items():
                     cursor.execute(f"UPDATE files SET is_deleted = TRUE, deleted_at = NOW() WHERE user_id = %s AND folder_id IN ({placeholders})", (owner_id, *descendants))
                 cursor.execute("UPDATE files SET is_deleted = TRUE, deleted_at = NOW() WHERE user_id = %s AND folder_id = %s", (owner_id, item_id))
             get_db().commit()
+            item_name = record.get("original_filename") if kind == "file" else record.get("name", "")
+            action = "Event deleted" if kind == "event" else "File deleted" if kind == "file" else "Folder deleted"
+            record_audit_action(session.get("principal_id", session["user_id"]), action, item_name)
         finally:
             cursor.close()
     flash("Selected items moved to Trash.", "danger")
@@ -4320,6 +4441,8 @@ def restore_items():
                 target = original if original_folder and original_folder["user_id"] == owner_id else None
                 cursor.execute("UPDATE files SET folder_id = %s, is_deleted = FALSE, deleted_at = NULL WHERE id = %s AND user_id = %s", (target, item_id, owner_id))
             get_db().commit()
+            item_name = record.get("original_filename") if kind == "file" else record.get("name", "")
+            record_audit_action(session.get("principal_id", session["user_id"]), "File restored" if kind == "file" else "Folder restored" if kind == "folder" else "Event restored", item_name)
         finally:
             cursor.close()
     flash("Selected items restored from Trash.", "success")
@@ -4341,6 +4464,8 @@ def permanent_delete_items():
             else:
                 permanently_delete_file_record(cursor, record)
             get_db().commit()
+            item_name = record.get("original_filename") if kind == "file" else record.get("name", "")
+            record_audit_action(session.get("principal_id", session["user_id"]), "File permanently deleted" if kind == "file" else "Folder permanently deleted" if kind == "folder" else "Event permanently deleted", item_name)
         finally:
             cursor.close()
     flash("Selected items permanently deleted.", "danger")
@@ -4355,6 +4480,12 @@ def empty_trash():
     owner_sql = "" if owner_id is None else "user_id = %s AND "
     owner_values = () if owner_id is None else (owner_id,)
     try:
+        cursor.execute("SELECT COUNT(*) FROM events WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
+        deleted_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM folders WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
+        deleted_count += cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM files WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
+        deleted_count += cursor.fetchone()[0]
         cursor.execute("SELECT id, user_id, name FROM events WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
         for event in cursor.fetchall():
             permanently_delete_event_record(cursor, event)
@@ -4370,6 +4501,8 @@ def empty_trash():
         for record in cursor.fetchall():
             permanently_delete_file_record(cursor, record)
         get_db().commit()
+        if deleted_count:
+            record_audit_action(session.get("principal_id", session["user_id"]), "Trash emptied", f"{deleted_count} items")
     except (MySQLError, OSError):
         get_db().rollback()
         app.logger.exception("Empty Trash error")
@@ -4459,6 +4592,11 @@ def bulk_download():
                     archive_path = f"{relative_paths[item['folder_id']]}/{item['original_filename']}"
                     bundle.write(path, arcname=unique_archive_path(archive_path))
     archive.seek(0)
+    actor_id = session.get("principal_id", session["user_id"])
+    for kind, _item_id, record in selected:
+        item_name = record.get("original_filename") if kind == "file" else record.get("name", "")
+        item_type = {"file": "File", "folder": "Folder", "event": "Event"}[kind]
+        record_audit_action(actor_id, f"{item_type} downloaded", item_name)
     return send_file(archive, as_attachment=True, download_name="jfcmpila-files.zip", mimetype="application/zip")
 
 

@@ -32,6 +32,18 @@ CREATE TABLE IF NOT EXISTS system_settings (
     PRIMARY KEY (setting_key)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id INT UNSIGNED NULL,
+    username VARCHAR(20) NOT NULL,
+    action VARCHAR(80) NOT NULL,
+    item VARCHAR(255) NOT NULL DEFAULT '',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_audit_logs_created_at (created_at),
+    KEY idx_audit_logs_user_id (user_id)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS folders (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id INT UNSIGNED NOT NULL,
