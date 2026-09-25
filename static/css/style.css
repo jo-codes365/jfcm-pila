@@ -5630,7 +5630,7 @@ hr {
 .admin-users-table th:nth-child(5), .admin-users-table td:nth-child(5) { width: 13.265306%; }
 .admin-users-table th:nth-child(6), .admin-users-table td:nth-child(6) { width: 18.367347%; }
 .admin-user-actions { min-width: 0; white-space: nowrap; }
-.admin-users-table i { font-size: 1.25rem; }
+.admin-users-table i { font-size: 1.2rem; }
 .admin-user-actions form { margin: 0; }
 .admin-user-actions button,
 .admin-user-actions select { max-width: 100%; }

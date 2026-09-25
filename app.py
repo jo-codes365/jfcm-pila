@@ -2111,12 +2111,15 @@ def settings():
             return redirect(url_for("login"))
         preferences = user_preferences(user_id)
         if session.get("role") == "super-admin":
-            # Include each active file record once across every account, including
-            # files owned by this Super Admin. COUNT/SUM operate on file records,
-            # whose stored filenames are unique in the existing schema.
+            # Aggregate directly from the records table so related folders/events
+            # cannot multiply rows. Include active records owned by every account.
             storage = query_one(
                 "SELECT COALESCE(SUM(file_size), 0) AS used, COUNT(*) AS file_count "
                 "FROM files WHERE is_deleted = FALSE",
+                (),
+            )
+            folders = query_one(
+                "SELECT COUNT(*) AS folder_count FROM folders WHERE is_deleted = FALSE",
                 (),
             )
         else:
@@ -2125,10 +2128,10 @@ def settings():
                 "FROM files WHERE user_id = %s AND is_deleted = FALSE",
                 (user_id,),
             )
-        folders = query_one(
-            "SELECT COUNT(*) AS folder_count FROM folders WHERE user_id = %s AND is_deleted = FALSE",
-            (user_id,),
-        )
+            folders = query_one(
+                "SELECT COUNT(*) AS folder_count FROM folders WHERE user_id = %s AND is_deleted = FALSE",
+                (user_id,),
+            )
         sidebar_cursor = get_db().cursor(dictionary=True)
         try:
             sidebar_cursor.execute(
