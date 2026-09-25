@@ -2115,6 +2115,9 @@ table tbody tr:nth-child(even) {
 .settings-section[aria-labelledby="appearance-settings-title"] .theme-options input:not(:checked) + span {
   border-color: transparent;
 }
+.settings-section[aria-labelledby="appearance-settings-title"] .theme-options input + span {
+  cursor: pointer;
+}
 .theme-options input:checked + span {
   border-color: var(--primary-dark);
   color: var(--primary-dark);
