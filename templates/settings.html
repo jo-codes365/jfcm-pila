@@ -103,6 +103,7 @@
           </div>
           {% endif %}
 
+          {% if admin_users is none %}
           <section class="settings-section" aria-labelledby="account-settings-title">
             <div class="settings-section-heading"><i class="bi bi-person"></i><div><h2 id="account-settings-title">Account</h2><p>Changes apply only to your signed-in account.</p></div></div>
             <form class="settings-form account-details-form" method="post" action="{{ url_for('update_settings_account') }}">
@@ -120,6 +121,7 @@
             </form>
             <form class="settings-logout" method="post" action="{{ url_for('logout') }}" data-confirm-message="Sign out of JFCM Library on this device?"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-button trash-text" type="submit"><i class="bi bi-box-arrow-right"></i> Log out</button></form>
           </section>
+          {% endif %}
 
           <section class="settings-section" aria-labelledby="appearance-settings-title">
             <div class="settings-section-heading"><i class="bi bi-circle-half"></i><div><h2 id="appearance-settings-title">Appearance</h2><p>Choose how JFCM Library appears on this account.</p></div></div>
