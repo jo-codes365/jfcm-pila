@@ -23,18 +23,8 @@
           {% if admin_users is not none %}
           <section class="settings-section" aria-labelledby="user-management-title">
             <div class="settings-section-heading"><i class="bi bi-people"></i><div><h2 id="user-management-title">User Management</h2><p>Create accounts and manage library access.</p></div></div>
-            <h3>Create User</h3>
-            <form method="post" action="{{ url_for('manage_users') }}" class="stack-form admin-create-user-form">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="return_to_settings" value="1">
-              <label>Email (optional)</label><input name="email" type="email" maxlength="255">
-              <label>Username</label><input name="username" required minlength="3" maxlength="20" pattern="[a-z0-9_]{3,20}">
-              <label>Password</label><input name="password" required minlength="6" type="password">
-              <label>Confirm password</label><input name="confirm_password" required minlength="6" type="password">
-              <label>Role</label><select name="role"><option value="admin">Admin</option><option value="">Public Viewer</option></select>
-              <button class="button primary" type="submit">Create User</button>
-            </form>
-            <h3>Users</h3>
-            <div class="admin-users-table-wrap"><table class="admin-users-table"><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Account Status</th><th>Storage Usage</th><th>File Count</th><th>Event Count</th><th>Actions</th></tr></thead><tbody>
+            <div class="settings-form-actions admin-users-toolbar"><h3>Users</h3><button id="open-create-user" class="button primary" type="button">Create User</button></div>
+            <div class="admin-users-table-wrap"><table class="admin-users-table"><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Account Status</th><th>Storage Usage</th><th>File Count</th><th>Event Count</th><th>Actions</th></tr></thead><tbody id="admin-users-table-body">
             {% for user in admin_users %}<tr>
               <td>{{ user.username }}</td><td>{{ user.email or '—' }}</td><td>{{ user.role or 'Public Viewer' }}</td><td>{{ 'Active' if user.is_active else 'Deactivated' }}</td>
               <td>{{ readable_size(user.storage_used or 0) }}</td><td>{{ user.file_count }}</td><td>{{ user.event_count }}</td><td class="admin-user-actions">
@@ -48,11 +38,27 @@
             </tr>{% endfor %}</tbody></table></div>
             <form method="post" action="{{ url_for('clear_user_workspace') }}" class="settings-form-actions"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button secondary" type="submit">Return to Super Admin workspace</button></form>
           </section>
+          <div id="create-user-modal" class="modal admin-create-user-modal" hidden aria-modal="true" role="dialog" aria-labelledby="create-user-title">
+            <section class="modal-card">
+              <button id="close-create-user" class="close-button" type="button" aria-label="Close">X</button>
+              <h2 id="create-user-title">Create User</h2>
+              <div id="create-user-messages" class="admin-create-user-messages" role="status" aria-live="polite"></div>
+              <form id="admin-create-user-form" method="post" action="{{ url_for('manage_users') }}" class="stack-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="return_to_settings" value="1">
+                <label for="create-user-email">Email</label><input id="create-user-email" name="email" type="email" maxlength="255">
+                <label for="create-user-username">Username</label><input id="create-user-username" name="username" required minlength="3" maxlength="20" pattern="[a-z0-9_]{3,20}">
+                <label for="create-user-password">Password</label><input id="create-user-password" name="password" required minlength="6" type="password">
+                <label for="create-user-confirm-password">Confirm Password</label><input id="create-user-confirm-password" name="confirm_password" required minlength="6" type="password">
+                <label for="create-user-role">Role</label><select id="create-user-role" name="role"><option value="admin">Admin</option><option value="">Public Viewer</option></select>
+                <div class="modal-actions"><button class="button secondary" type="button" id="cancel-create-user">Close</button><button class="button primary" type="submit">Create User</button></div>
+              </form>
+            </section>
+          </div>
           {% endif %}
 
           <section class="settings-section" aria-labelledby="account-settings-title">
             <div class="settings-section-heading"><i class="bi bi-person"></i><div><h2 id="account-settings-title">Account</h2><p>Changes apply only to your signed-in account.</p></div></div>
-            <form class="settings-form" method="post" action="{{ url_for('update_settings_account') }}">
+            <form class="settings-form account-details-form" method="post" action="{{ url_for('update_settings_account') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <label>Username<input name="username" required pattern="[a-z0-9_]{3,20}" value="{{ account.username }}" autocomplete="username"></label>
               <label>Email address<input name="email" type="email" maxlength="255" value="{{ account.email or '' }}" autocomplete="email"></label>
@@ -93,4 +99,89 @@
     </div>
   </main>
 </div>
+{% endblock %}
+{% block page_scripts %}
+{% if admin_users is not none %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("create-user-modal");
+  const openButton = document.getElementById("open-create-user");
+  const closeButtons = [document.getElementById("close-create-user"), document.getElementById("cancel-create-user")];
+  const form = document.getElementById("admin-create-user-form");
+  const tableBody = document.getElementById("admin-users-table-body");
+  const messages = document.getElementById("create-user-messages");
+  let previousFocus = null;
+
+  function openModal() {
+    previousFocus = document.activeElement;
+    messages.textContent = "";
+    messages.classList.remove("has-error");
+    modal.hidden = false;
+    requestAnimationFrame(function () { modal.classList.add("is-visible"); });
+    document.getElementById("create-user-email").focus();
+  }
+  function closeModal() {
+    modal.classList.remove("is-visible");
+    window.setTimeout(function () { modal.hidden = true; }, 170);
+    if (previousFocus) previousFocus.focus();
+  }
+  function showToast(category, message) {
+    let stack = document.querySelector(".toast-stack");
+    if (!stack) {
+      stack = document.createElement("div");
+      stack.className = "toast-stack";
+      stack.setAttribute("aria-live", "polite");
+      document.body.appendChild(stack);
+    }
+    const toast = document.createElement("div");
+    toast.className = "toast toast-" + category;
+    toast.textContent = message;
+    stack.appendChild(toast);
+    window.setTimeout(function () { toast.remove(); if (!stack.children.length) stack.remove(); }, 4500);
+  }
+
+  openButton.addEventListener("click", openModal);
+  closeButtons.forEach(function (button) { button.addEventListener("click", closeModal); });
+  modal.addEventListener("click", function (event) { if (event.target === modal) closeModal(); });
+  document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !modal.hidden) closeModal(); });
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    messages.textContent = "";
+    try {
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form), credentials: "same-origin" });
+      const html = await response.text();
+      const resultDocument = new DOMParser().parseFromString(html, "text/html");
+      const refreshedBody = resultDocument.getElementById("admin-users-table-body");
+      const feedback = Array.from(resultDocument.querySelectorAll(".toast")).map(function (toast) {
+        const category = Array.from(toast.classList).find(function (name) { return name.indexOf("toast-") === 0 && name !== "toast-stack"; });
+        return { category: category ? category.slice(6) : "error", message: toast.textContent.trim() };
+      });
+      if (!response.ok || !refreshedBody) throw new Error("Unable to create the user. Please try again.");
+      if (feedback.some(function (item) { return item.category === "error" || item.category === "danger"; })) {
+        messages.textContent = feedback.map(function (item) { return item.message; }).join(" ");
+        messages.classList.add("has-error");
+        return;
+      }
+      const created = feedback.some(function (item) { return item.category === "success"; });
+      if (created) {
+        tableBody.innerHTML = refreshedBody.innerHTML;
+        form.reset();
+        closeModal();
+        feedback.forEach(function (item) { showToast(item.category, item.message); });
+      } else {
+        messages.textContent = feedback.map(function (item) { return item.message; }).join(" ") || "Unable to create the user. Please try again.";
+        messages.classList.add("has-error");
+      }
+    } catch (error) {
+      messages.textContent = error.message || "Unable to create the user. Please try again.";
+      messages.classList.add("has-error");
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+});
+</script>
+{% endif %}
 {% endblock %}

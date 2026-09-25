@@ -1914,7 +1914,7 @@ table tbody tr:nth-child(even) {
   padding-bottom: 24px;
 }
 .settings-page {
-  width: min(100%, 760px);
+  width: min(100%, 900px);
   margin: 0 auto 48px;
 }
 .legal-workspace-page {
@@ -2010,6 +2010,19 @@ table tbody tr:nth-child(even) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 18px;
   padding-left: 30px;
+}
+.account-details-form {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+}
+.account-details-form > label {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.account-details-form > .settings-form-actions {
+  flex: 0 0 100%;
 }
 .settings-form label {
   display: grid;
@@ -5180,6 +5193,8 @@ hr {
   .settings-section { padding: 20px 0; }
   .settings-section-heading { margin-bottom: 15px; }
   .settings-form { grid-template-columns: 1fr; gap: 12px; padding-left: 0; }
+  .account-details-form { flex-direction: column; }
+  .account-details-form > label { flex: 1 1 auto; width: 100%; }
   .settings-form label:first-of-type,
   .settings-subsection label:first-of-type { grid-column: auto; }
   .settings-subsection { margin-top: 18px; padding-top: 18px; }
@@ -5588,4 +5603,37 @@ hr {
   .admin-users-table-wrap { width: 100%; overscroll-behavior-x: contain; }
   .admin-users-table { min-width: 820px; }
   .admin-user-actions { min-width: 190px; }
+}
+
+/* Create User modal in Super Admin Settings */
+.admin-users-toolbar {
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 10px;
+}
+.admin-users-toolbar h3 { margin: 0; }
+.admin-create-user-modal { overflow-y: auto; }
+.admin-create-user-modal .modal-card {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+.admin-create-user-modal .modal-card h2 { margin: 0 32px 8px 0; }
+.admin-create-user-modal .stack-form { margin-top: 16px; }
+.admin-create-user-modal .stack-form label { text-align: left; }
+.admin-create-user-modal .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.admin-create-user-modal .modal-actions button { margin-top: 0; }
+.admin-create-user-messages:empty { display: none; }
+.admin-create-user-messages.has-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--danger);
+  color: #fff;
+  font-size: .88rem;
+}
+@media (max-width: 480px) {
+  .admin-users-toolbar { flex-wrap: wrap; }
+  .admin-create-user-modal { padding: 12px; }
+  .admin-create-user-modal .modal-card { width: 100%; max-height: calc(100vh - 24px); padding: 24px 18px; }
+  .admin-create-user-modal .modal-actions { flex-wrap: wrap; }
 }
