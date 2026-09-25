@@ -2095,6 +2095,10 @@ table tbody tr:nth-child(even) {
 .theme-options label {
   position: relative;
 }
+.settings-section[aria-labelledby="appearance-settings-title"] .theme-options label,
+.settings-section[aria-labelledby="appearance-settings-title"] .theme-options input[type="radio"] {
+  cursor: pointer;
+}
 .theme-options input {
   position: absolute;
   opacity: 0;
@@ -2114,9 +2118,6 @@ table tbody tr:nth-child(even) {
 }
 .settings-section[aria-labelledby="appearance-settings-title"] .theme-options input:not(:checked) + span {
   border-color: transparent;
-}
-.settings-section[aria-labelledby="appearance-settings-title"] .theme-options input + span {
-  cursor: pointer;
 }
 .theme-options input:checked + span {
   border-color: var(--primary-dark);
