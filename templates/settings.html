@@ -22,21 +22,52 @@
           <p id="settings-search-empty" class="settings-search-empty" role="status" hidden>No matching settings</p>
           {% if admin_users is not none %}
           <section class="settings-section" aria-labelledby="user-management-title">
-            <div class="settings-section-heading"><i class="bi bi-people"></i><div><h2 id="user-management-title">User Management</h2><p>Create accounts and manage library access.</p></div></div>
+            <div class="settings-section-heading"><i class="bi bi-people"></i><div><h2 id="user-management-title">User Management</h2><p>Create accounts and manage library access. <a href="{{ url_for('manage_public_shares') }}">Manage public sharing</a></p></div></div>
             <div class="settings-form-actions admin-users-toolbar"><h3>Users</h3><button id="open-create-user" class="button primary" type="button">Create User</button></div>
-            <div class="admin-users-table-wrap"><table class="admin-users-table"><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Account Status</th><th>Storage Usage</th><th>File Count</th><th>Event Count</th><th>Actions</th></tr></thead><tbody id="admin-users-table-body">
-            {% for user in admin_users %}<tr>
-              <td>{{ user.username }}</td><td>{{ user.email or '—' }}</td><td>{{ user.role or 'Public Viewer' }}</td><td>{{ 'Active' if user.is_active else 'Deactivated' }}</td>
-              <td>{{ readable_size(user.storage_used or 0) }}</td><td>{{ user.file_count }}</td><td>{{ user.event_count }}</td><td class="admin-user-actions">
-                <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Manage Files</button></form>
-                <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="section" value="events"><button type="submit" name="open_events" value="1">Manage Events</button></form>
-                {% if user.id != session.get('principal_id', session.get('user_id')) %}
-                {% if user.role != 'super-admin' %}<form method="post" action="{{ url_for('update_user_role', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><select name="role"><option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option><option value="" {% if not user.role %}selected{% endif %}>Public Viewer</option></select><button type="submit">Change Role</button></form>{% endif %}
-                <form method="post" action="{{ url_for('set_user_active', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 0 if user.is_active else 1 }}">{% if user.is_active %}<label><input type="checkbox" name="confirm_deactivate" value="1" required> Confirm deactivation</label><button type="submit">Deactivate</button>{% else %}<button type="submit">Reactivate</button>{% endif %}</form>
-                {% endif %}
+            <div class="table-wrap admin-users-table-wrap">
+              <table class="file-table admin-users-table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Stored</th>
+                    <th>Files</th>
+                    <th>Events</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-users-table-body">
+                {% for user in admin_users %}
+                <tr data-user-id="{{ user.id }}">
+                  <td>{{ user.username }}</td>
+                  <td>{{ user.email or '—' }}</td>
+                  <td>{{ user.role or 'Public Viewer' }}</td>
+                  <td>{{ 'Active' if user.is_active else 'Deactivated' }}</td>
+                <td>{{ readable_size(user.storage_used or 0) }}</td>
+                <td>{{ user.file_count }}</td>
+                <td>{{ user.event_count }}</td>
+                <td class="actions admin-user-actions">
+                  <div class="actions2">
+                  <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="row-action" type="submit" aria-label="Manage files for {{ user.username }}" title="Manage Files"><i class="bi bi-folder2-open" aria-hidden="true"></i></button></form>
+                  <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="section" value="events"><button class="row-action" type="submit" name="open_events" value="1" aria-label="Manage events for {{ user.username }}" title="Manage Events"><i class="bi bi-calendar-event" aria-hidden="true"></i></button></form>
+                  {% if user.id != session.get('principal_id', session.get('user_id')) %}
+                  {% if user.role != 'super-admin' %}<button class="row-action" type="button" data-open-role-modal data-role-url="{{ url_for('update_user_role', user_id=user.id) }}" data-user-id="{{ user.id }}" data-username="{{ user.username }}" data-role="{{ user.role or '' }}" aria-label="Change role for {{ user.username }}" title="Change Role"><i class="bi bi-person-gear" aria-hidden="true"></i></button>{% endif %}
+                  <form method="post" action="{{ url_for('set_user_active', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="active" value="{{ 0 if user.is_active else 1 }}">
+                    {% if user.is_active %}
+                    <label>
+                      <input type="checkbox" name="confirm_deactivate" value="1" required> 
+                      Confirm deactivation
+                    </label>
+                      <button class="row-action" type="submit" aria-label="Deactivate {{ user.username }}" title="Deactivate"><i class="bi bi-person-x" aria-hidden="true"></i></button>{% else %}<button class="row-action" type="submit" aria-label="Reactivate {{ user.username }}" title="Reactivate"><i class="bi bi-person-check" aria-hidden="true"></i></button>{% endif %}</form>
+                  {% endif %}
+                </div>
               </td>
             </tr>{% endfor %}</tbody></table></div>
-            <form method="post" action="{{ url_for('clear_user_workspace') }}" class="settings-form-actions"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button secondary" type="submit">Return to Super Admin workspace</button></form>
+            <form method="post" action="{{ url_for('clear_user_workspace') }}" class="settings-form-actions"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="return_to" value="settings"><button class="button secondary" type="submit">Return to Super Admin workspace</button></form>
           </section>
           <div id="create-user-modal" class="modal admin-create-user-modal" hidden aria-modal="true" role="dialog" aria-labelledby="create-user-title">
             <section class="modal-card">
@@ -51,6 +82,19 @@
                 <label for="create-user-confirm-password">Confirm Password</label><input id="create-user-confirm-password" name="confirm_password" required minlength="6" type="password">
                 <label for="create-user-role">Role</label><select id="create-user-role" name="role"><option value="admin">Admin</option><option value="">Public Viewer</option></select>
                 <div class="modal-actions"><button class="button secondary" type="button" id="cancel-create-user">Close</button><button class="button primary" type="submit">Create User</button></div>
+              </form>
+            </section>
+          </div>
+          <div id="edit-user-role-modal" class="modal admin-create-user-modal" hidden aria-modal="true" role="dialog" aria-labelledby="edit-user-role-title">
+            <section class="modal-card">
+              <button id="close-edit-user-role" class="close-button" type="button" aria-label="Close">X</button>
+              <h2 id="edit-user-role-title">Change Role</h2>
+              <div id="edit-user-role-messages" class="admin-create-user-messages" role="status" aria-live="polite"></div>
+              <form id="edit-user-role-form" method="post" class="stack-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label for="edit-user-role-username">Username</label><input id="edit-user-role-username" type="text" readonly>
+                <label for="edit-user-role-select">Role</label><select id="edit-user-role-select" name="role"><option value="">Public Viewer</option><option value="admin">Admin</option><option value="super-admin" disabled>Super Admin (managed separately)</option></select>
+                <div class="modal-actions"><button class="button secondary" type="button" id="cancel-edit-user-role">Close</button><button class="button primary" type="submit">Save</button></div>
               </form>
             </section>
           </div>
@@ -179,6 +223,84 @@ document.addEventListener("DOMContentLoaded", function () {
       messages.classList.add("has-error");
     } finally {
       submitButton.disabled = false;
+    }
+  });
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("edit-user-role-modal");
+  const form = document.getElementById("edit-user-role-form");
+  const usernameInput = document.getElementById("edit-user-role-username");
+  const roleSelect = document.getElementById("edit-user-role-select");
+  const messages = document.getElementById("edit-user-role-messages");
+  const tableBody = document.getElementById("admin-users-table-body");
+  let opener = null;
+
+  function openRoleModal(button) {
+    opener = button;
+    form.action = button.dataset.roleUrl;
+    usernameInput.value = button.dataset.username || "";
+    roleSelect.value = button.dataset.role || "";
+    messages.textContent = "";
+    messages.classList.remove("has-error");
+    modal.hidden = false;
+    requestAnimationFrame(function () { modal.classList.add("is-visible"); });
+    roleSelect.focus();
+  }
+  function closeRoleModal() {
+    modal.classList.remove("is-visible");
+    window.setTimeout(function () { modal.hidden = true; }, 170);
+    if (opener && opener.isConnected) opener.focus();
+  }
+  function feedbackFrom(documentNode) {
+    return Array.from(documentNode.querySelectorAll(".toast")).map(function (toast) {
+      const category = Array.from(toast.classList).find(function (name) { return name.indexOf("toast-") === 0 && name !== "toast-stack"; });
+      return { category: category ? category.slice(6) : "error", message: toast.textContent.trim() };
+    });
+  }
+
+  document.addEventListener("click", function (event) {
+    const button = event.target.closest("[data-open-role-modal]");
+    if (button) openRoleModal(button);
+  });
+  [document.getElementById("close-edit-user-role"), document.getElementById("cancel-edit-user-role")].forEach(function (button) {
+    button.addEventListener("click", closeRoleModal);
+  });
+  modal.addEventListener("click", function (event) { if (event.target === modal) closeRoleModal(); });
+  document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !modal.hidden) closeRoleModal(); });
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const saveButton = form.querySelector('button[type="submit"]');
+    saveButton.disabled = true;
+    messages.textContent = "";
+    messages.classList.remove("has-error");
+    try {
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form), credentials: "same-origin" });
+      const resultDocument = new DOMParser().parseFromString(await response.text(), "text/html");
+      const refreshedBody = resultDocument.getElementById("admin-users-table-body");
+      const userId = opener && opener.dataset.userId;
+      const refreshedRow = refreshedBody && Array.from(refreshedBody.querySelectorAll("tr[data-user-id]")).find(function (row) { return row.dataset.userId === userId; });
+      const feedback = feedbackFrom(resultDocument);
+      if (!response.ok || !refreshedRow) {
+        messages.textContent = feedback.map(function (item) { return item.message; }).join(" ") || "Unable to update this user's role. Please check the selected role and try again.";
+        messages.classList.add("has-error");
+        return;
+      }
+      const errorFeedback = feedback.filter(function (item) { return item.category === "error" || item.category === "danger"; });
+      if (errorFeedback.length) {
+        messages.textContent = errorFeedback.map(function (item) { return item.message; }).join(" ");
+        messages.classList.add("has-error");
+        return;
+      }
+      const currentRow = tableBody.querySelector('tr[data-user-id="' + userId + '"]');
+      if (currentRow) currentRow.replaceWith(refreshedRow);
+      closeRoleModal();
+    } catch (error) {
+      messages.textContent = error.message || "Unable to update this user's role. Please try again.";
+      messages.classList.add("has-error");
+    } finally {
+      saveButton.disabled = false;
     }
   });
 });

@@ -268,6 +268,8 @@ def login_required(view):
         if not current_role or current_role.get("role") not in {"admin", "super-admin"}:
             session.clear()
             abort(403)
+        g.is_super_admin = current_role["role"] == "super-admin"
+        g.principal_id = principal_id
         if current_role["role"] == "super-admin":
             selected_owner = query_one("SELECT id FROM users WHERE id = %s", (session.get("user_id"),))
             if not selected_owner:
@@ -313,6 +315,8 @@ def login_or_public_link_required(view):
                 if not share_context:
                     abort(403)
                 return view(*args, **kwargs)
+            g.is_super_admin = principal["role"] == "super-admin"
+            g.principal_id = principal_id
             touch_authenticated_session()
             purge_expired_trash(session["user_id"])
         return view(*args, **kwargs)
@@ -397,6 +401,18 @@ def purge_expired_trash(owner_id):
         cursor.close()
 
 
+def is_super_admin_principal():
+    if hasattr(g, "is_super_admin"):
+        return g.is_super_admin
+    principal_id = session.get("principal_id", session.get("user_id"))
+    if not principal_id:
+        return False
+    principal = query_one("SELECT role, is_active FROM users WHERE id = %s", (principal_id,))
+    g.is_super_admin = bool(principal and principal.get("is_active") and principal.get("role") == "super-admin")
+    g.principal_id = principal_id
+    return g.is_super_admin
+
+
 def file_record(file_id, include_deleted=False):
     deleted_condition = "" if include_deleted else " AND files.is_deleted = FALSE"
     return query_one(
@@ -421,19 +437,16 @@ def event_record(event_id, include_deleted=False):
 
 def owned_file(file_id):
     record = file_record(file_id)
-    if record and record["user_id"] == session["user_id"]:
+    if record and (is_super_admin_principal() or record["user_id"] == session["user_id"]):
         return record
     return None
 
 
 def owned_folder(folder_id, include_deleted=False):
-    condition = "" if include_deleted else " AND is_deleted = FALSE"
-    return query_one(
-        "SELECT id, user_id, parent_id, event_id, original_parent_id, name, share_token, "
-        "is_starred, is_deleted "
-        "FROM folders WHERE id = %s AND user_id = %s" + condition,
-        (folder_id, session["user_id"]),
-    )
+    folder = folder_record(folder_id, include_deleted=include_deleted)
+    if folder and (is_super_admin_principal() or folder["user_id"] == session["user_id"]):
+        return folder
+    return None
 
 
 def folder_record(folder_id, include_deleted=False):
@@ -448,7 +461,7 @@ def folder_record(folder_id, include_deleted=False):
 
 def owned_event(event_id, include_deleted=False):
     record = event_record(event_id, include_deleted=include_deleted)
-    if record and record["user_id"] == session["user_id"]:
+    if record and (is_super_admin_principal() or record["user_id"] == session["user_id"]):
         return record
     return None
 
@@ -634,7 +647,7 @@ def accessible_event(event_id, require_owner=False, share_context=None, include_
     event = event_record(event_id, include_deleted=include_deleted)
     if not event:
         return None
-    if session.get("user_id") and event["user_id"] == session["user_id"]:
+    if session.get("user_id") and (is_super_admin_principal() or event["user_id"] == session["user_id"]):
         return {**event, "can_edit": True, "access_via": "owner"}
     if require_owner:
         return None
@@ -648,7 +661,7 @@ def accessible_folder(folder_id, require_owner=False, share_context=None, includ
     folder = folder_record(folder_id, include_deleted=include_deleted)
     if not folder:
         return None
-    if session.get("user_id") and folder["user_id"] == session["user_id"]:
+    if session.get("user_id") and (is_super_admin_principal() or folder["user_id"] == session["user_id"]):
         return {**folder, "can_edit": True, "access_via": "owner"}
     if require_owner:
         return None
@@ -665,7 +678,7 @@ def accessible_file(file_id, require_owner=False, share_context=None):
     record = file_record(file_id)
     if not record:
         return None
-    if session.get("user_id") and record["user_id"] == session["user_id"]:
+    if session.get("user_id") and (is_super_admin_principal() or record["user_id"] == session["user_id"]):
         return {**record, "can_edit": True, "access_via": "owner"}
     if require_owner:
         return None
@@ -713,7 +726,14 @@ def workspace_return_url(default=None):
 
 def folder_descendants(folder_id, owner_id=None, include_deleted=False):
     """Return descendant IDs using server-side ownership-scoped traversal."""
-    owner_id = session["user_id"] if owner_id is None else owner_id
+    if owner_id is None:
+        if getattr(g, "is_super_admin", False):
+            root = folder_record(folder_id, include_deleted=True)
+            owner_id = root["user_id"] if root else None
+        else:
+            owner_id = session["user_id"]
+    if owner_id is None:
+        return []
     descendants = []
     pending = [folder_id]
     while pending:
@@ -759,6 +779,17 @@ def folder_sizes(cursor, folder_ids, include_deleted=False, owner_id=None):
         (owner_id, include_deleted, *folder_ids, owner_id, include_deleted, owner_id, include_deleted),
     )
     return {row["root_id"]: row["total_size"] or 0 for row in cursor.fetchall()}
+
+
+def folder_sizes_by_owner(cursor, folders, include_deleted=False):
+    """Measure mixed-owner folder results without crossing owner boundaries."""
+    sizes = {}
+    owner_folders = {}
+    for folder in folders:
+        owner_folders.setdefault(folder["user_id"], []).append(folder["id"])
+    for owner_id, folder_ids in owner_folders.items():
+        sizes.update(folder_sizes(cursor, folder_ids, include_deleted=include_deleted, owner_id=owner_id))
+    return sizes
 
 
 def event_sizes(cursor, event_ids, include_deleted=False, owner_id=None):
@@ -2195,7 +2226,7 @@ def select_user_workspace(user_id):
 def clear_user_workspace():
     session["user_id"] = session.get("principal_id", session["user_id"])
     session[OFFLINE_CACHE_SCOPE_KEY] = secrets.token_urlsafe(24)
-    return redirect(url_for("settings"))
+    return redirect(url_for("settings" if request.form.get("return_to") == "settings" else "dashboard"))
 
 
 @app.post("/admin/users/<int:user_id>/active")
@@ -2345,6 +2376,13 @@ def update_settings_theme():
 def dashboard():
     if "user_id" not in session:
         return public_dashboard()
+    super_admin_principal = is_super_admin_principal()
+    if super_admin_principal and session_is_expired():
+        session.clear()
+        flash("Your session expired after 7 days of inactivity. Please sign in again.", "error")
+        return redirect(url_for("login"))
+    if super_admin_principal:
+        touch_authenticated_session()
     section = request.args.get("section", "files")
     folder_id = request.args.get("folder", type=int)
     event_id = request.args.get("event", type=int)
@@ -2358,6 +2396,8 @@ def dashboard():
     except ValueError:
         selected_event_date = None
     is_event_date_workspace = section == "events" and event_id is None and selected_event_date is not None
+    super_admin_workspace = super_admin_principal
+    owner_scope_id = None if super_admin_workspace else session["user_id"]
 
     def dashboard_url_with_updates(**updates):
         params = dict(request.args.items())
@@ -2383,6 +2423,7 @@ def dashboard():
             current_event = owned_event(event_id)
             if not current_event:
                 abort(404)
+            owner_scope_id = current_event["user_id"]
         if folder_id is not None:
             if section not in {"files", "events"}:
                 abort(400)
@@ -2393,8 +2434,9 @@ def dashboard():
                 or (section != "events" and current_folder["event_id"] is not None)
             ):
                 abort(404)
+            owner_scope_id = current_folder["user_id"]
             cursor = get_db().cursor()
-            cursor.execute("UPDATE folders SET accessed_at = NOW() WHERE id = %s AND user_id = %s", (folder_id, session["user_id"]))
+            cursor.execute("UPDATE folders SET accessed_at = NOW() WHERE id = %s AND user_id = %s", (folder_id, owner_scope_id))
             get_db().commit()
             cursor.close()
             node = current_folder
@@ -2407,23 +2449,28 @@ def dashboard():
                 node = owned_folder(node["parent_id"]) if node["parent_id"] else None
             breadcrumbs.reverse()
         cursor = get_db().cursor(dictionary=True)
-        cursor.execute("SELECT COALESCE(SUM(file_size), 0) AS total_storage FROM files WHERE user_id = %s AND is_deleted = FALSE", (session["user_id"],))
+        if owner_scope_id is None:
+            cursor.execute("SELECT COALESCE(SUM(file_size), 0) AS total_storage FROM files WHERE is_deleted = FALSE")
+        else:
+            cursor.execute("SELECT COALESCE(SUM(file_size), 0) AS total_storage FROM files WHERE user_id = %s AND is_deleted = FALSE", (owner_scope_id,))
         total_storage = cursor.fetchone()["total_storage"] or 0
         deleted = section == "trash"
+        scoped_owner_sql = "" if owner_scope_id is None else "user_id = %s AND "
+        scoped_owner_values = () if owner_scope_id is None else (owner_scope_id,)
         date_workspace_events = []
         events = []
         if is_event_date_workspace and not search_query:
             cursor.execute(
                 "SELECT id, name, event_date, event_type, share_token, created_at, is_starred FROM events "
-                "WHERE user_id = %s AND is_deleted = FALSE AND event_date = %s ORDER BY name",
-                (session["user_id"], selected_event_date),
+                "WHERE " + ("" if owner_scope_id is None else "user_id = %s AND ") + "is_deleted = FALSE AND event_date = %s ORDER BY name",
+                ((selected_event_date,) if owner_scope_id is None else (owner_scope_id, selected_event_date)),
             )
             events = cursor.fetchall()
             date_workspace_events = events
             folders = []
             files = []
         elif section == "events" and event_id is None and not search_query:
-            cursor.execute("SELECT id, name, event_date, event_type, share_token, created_at, is_starred FROM events WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name", (session["user_id"],))
+            cursor.execute("SELECT id, name, event_date, event_type, share_token, created_at, is_starred FROM events WHERE " + ("" if owner_scope_id is None else "user_id = %s AND ") + "is_deleted = FALSE ORDER BY event_date, name", (() if owner_scope_id is None else (owner_scope_id,)))
             events = cursor.fetchall()
             folders = []
             files = []
@@ -2451,91 +2498,110 @@ def dashboard():
                 event_scope_sql = " AND event_id IS NULL"
                 event_scope_values = ()
             cursor.execute(
-                "SELECT id, name, parent_id, "
+                "SELECT id, user_id, name, parent_id, "
                 + ("deleted_at, deleted_at AS created_at, " if deleted else "created_at, ")
                 + "accessed_at, is_starred, share_token FROM folders "
-                f"WHERE user_id = %s AND is_deleted = %s AND name LIKE %s{folder_scope_sql}{event_scope_sql} ORDER BY name",
-                (session["user_id"], deleted, search_term, *folder_scope_values, *event_scope_values),
+                f"WHERE {scoped_owner_sql}is_deleted = %s AND name LIKE %s{folder_scope_sql}{event_scope_sql} ORDER BY name",
+                (*scoped_owner_values, deleted, search_term, *folder_scope_values, *event_scope_values),
             )
             folders = cursor.fetchall()
             cursor.execute(
-                "SELECT id, original_filename, folder_id, file_size, mime_type, "
+                "SELECT id, user_id, original_filename, folder_id, file_size, mime_type, "
                 + ("deleted_at, deleted_at AS uploaded_at, " if deleted else "uploaded_at, ")
                 + "accessed_at, is_starred, share_token FROM files "
-                f"WHERE user_id = %s AND is_deleted = %s AND original_filename LIKE %s{file_scope_sql}{event_scope_sql} ORDER BY uploaded_at DESC",
-                (session["user_id"], deleted, search_term, *folder_scope_values, *event_scope_values),
+                f"WHERE {scoped_owner_sql}is_deleted = %s AND original_filename LIKE %s{file_scope_sql}{event_scope_sql} ORDER BY uploaded_at DESC",
+                (*scoped_owner_values, deleted, search_term, *folder_scope_values, *event_scope_values),
             )
             files = cursor.fetchall()
             if section == "events" and event_id is None:
                 cursor.execute(
                     "SELECT id, name, event_date, event_type, share_token, created_at, is_starred FROM events "
-                    "WHERE user_id = %s AND is_deleted = FALSE AND name LIKE %s ORDER BY name",
-                    (session["user_id"], search_term),
+                    f"WHERE {scoped_owner_sql}is_deleted = FALSE AND name LIKE %s ORDER BY name",
+                    (*scoped_owner_values, search_term),
                 )
                 events = cursor.fetchall()
             elif section == "trash":
                 cursor.execute(
                     "SELECT id, name, event_date, event_type, share_token, deleted_at, created_at, is_starred FROM events "
-                    "WHERE user_id = %s AND is_deleted = TRUE AND name LIKE %s ORDER BY deleted_at DESC",
-                    (session["user_id"], search_term),
+                    f"WHERE {scoped_owner_sql}is_deleted = TRUE AND name LIKE %s ORDER BY deleted_at DESC",
+                    (*scoped_owner_values, search_term),
                 )
                 events = cursor.fetchall()
         elif section == "starred":
-            where = "user_id = %s AND is_deleted = FALSE AND event_id IS NULL AND is_starred = TRUE"
-            values = (session["user_id"],)
+            where = scoped_owner_sql + "is_deleted = FALSE AND event_id IS NULL AND is_starred = TRUE"
+            values = scoped_owner_values
         elif section == "recent":
-            where = "user_id = %s AND is_deleted = FALSE AND event_id IS NULL"
-            values = (session["user_id"],)
+            where = scoped_owner_sql + "is_deleted = FALSE AND event_id IS NULL"
+            values = scoped_owner_values
         elif section == "trash":
-            where = "user_id = %s AND is_deleted = TRUE AND event_id IS NULL"
-            values = (session["user_id"],)
+            where = scoped_owner_sql + "is_deleted = TRUE AND event_id IS NULL"
+            values = scoped_owner_values
             cursor.execute(
-                "SELECT id, name, event_date, event_type, share_token, deleted_at, created_at, is_starred FROM events "
-                "WHERE user_id = %s AND is_deleted = TRUE ORDER BY deleted_at DESC",
-                (session["user_id"],),
+                "SELECT id, name, event_date, event_type, share_token, deleted_at, created_at, is_starred FROM events WHERE "
+                + scoped_owner_sql + "is_deleted = TRUE ORDER BY deleted_at DESC",
+                scoped_owner_values,
             )
             events = cursor.fetchall()
         elif is_event_date_workspace:
-            where = "user_id = %s AND is_deleted = FALSE AND 1 = 0"
-            values = (session["user_id"],)
+            where = scoped_owner_sql + "is_deleted = FALSE AND 1 = 0"
+            values = scoped_owner_values
         elif section == "events":
-            where = "user_id = %s AND is_deleted = FALSE AND event_id = %s AND parent_id <=> %s"
-            values = (session["user_id"], event_id, folder_id)
+            where = scoped_owner_sql + "is_deleted = FALSE AND event_id = %s AND parent_id <=> %s"
+            values = (*scoped_owner_values, event_id, folder_id)
         else:
-            where = "user_id = %s AND is_deleted = FALSE AND event_id IS NULL AND parent_id <=> %s"
-            values = (session["user_id"], folder_id)
+            where = scoped_owner_sql + "is_deleted = FALSE AND event_id IS NULL AND parent_id <=> %s"
+            values = (*scoped_owner_values, folder_id)
         if not search_query and not (section == "events" and event_id is None) and not is_event_date_workspace:
             folder_date = "deleted_at, deleted_at AS created_at" if deleted else "COALESCE(accessed_at, created_at) AS created_at" if section == "recent" else "created_at"
-            cursor.execute(f"SELECT id, name, parent_id, share_token, {folder_date}, accessed_at, is_starred FROM folders WHERE {where} ORDER BY created_at DESC", values)
+            cursor.execute(f"SELECT id, user_id, name, parent_id, share_token, {folder_date}, accessed_at, is_starred FROM folders WHERE {where} ORDER BY created_at DESC", values)
             folders = cursor.fetchall()
-        sizes = folder_sizes(cursor, [folder["id"] for folder in folders], include_deleted=deleted)
+        sizes = folder_sizes_by_owner(cursor, folders, include_deleted=deleted)
         for folder in folders:
             folder["size"] = sizes.get(folder["id"], 0)
         event_size_totals = event_sizes(
             cursor,
             [event["id"] for event in events],
             include_deleted=deleted,
-            owner_id=session["user_id"],
+            owner_id=owner_scope_id,
         )
         for event in events:
             event["size"] = event_size_totals.get(event["id"], 0)
         if not search_query and not (section == "events" and event_id is None) and not is_event_date_workspace:
             file_where = where.replace("parent_id", "folder_id")
             file_date = "deleted_at, deleted_at AS uploaded_at" if deleted else "COALESCE(accessed_at, uploaded_at) AS uploaded_at" if section == "recent" else "uploaded_at"
-            cursor.execute(f"SELECT id, original_filename, folder_id, file_size, mime_type, share_token, {file_date}, accessed_at, is_starred FROM files WHERE {file_where} ORDER BY uploaded_at DESC", values)
+            cursor.execute(f"SELECT id, user_id, original_filename, folder_id, file_size, mime_type, share_token, {file_date}, accessed_at, is_starred FROM files WHERE {file_where} ORDER BY uploaded_at DESC", values)
             files = cursor.fetchall()
-        if section == "events" and event_id is not None:
-            cursor.execute("SELECT id, name FROM folders WHERE user_id = %s AND is_deleted = FALSE AND event_id = %s ORDER BY name", (session["user_id"], event_id))
+        if owner_scope_id is None:
+            cursor.execute("SELECT id, name, user_id FROM folders WHERE is_deleted = FALSE AND event_id IS NULL ORDER BY name")
+        elif section == "events" and event_id is not None:
+            cursor.execute("SELECT id, name, user_id FROM folders WHERE user_id = %s AND is_deleted = FALSE AND event_id = %s ORDER BY name", (owner_scope_id, event_id))
         else:
-            cursor.execute("SELECT id, name FROM folders WHERE user_id = %s AND is_deleted = FALSE AND event_id IS NULL ORDER BY name", (session["user_id"],))
+            cursor.execute("SELECT id, name, user_id FROM folders WHERE user_id = %s AND is_deleted = FALSE AND event_id IS NULL ORDER BY name", (owner_scope_id,))
         move_folders = cursor.fetchall()
-        cursor.execute("SELECT id, name, event_date, event_type FROM events WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name", (session["user_id"],))
+        cursor.execute("SELECT id, name, event_date, event_type FROM events WHERE " + scoped_owner_sql + "is_deleted = FALSE ORDER BY event_date, name", scoped_owner_values)
         sidebar_events = cursor.fetchall()
-        if section == "events" and event_id is not None:
-            cursor.execute("SELECT id, name, parent_id FROM folders WHERE user_id = %s AND event_id = %s", (session["user_id"], event_id))
+        if owner_scope_id is None:
+            cursor.execute("SELECT id, name, parent_id FROM folders WHERE event_id IS NULL")
+        elif section == "events" and event_id is not None:
+            cursor.execute("SELECT id, name, parent_id FROM folders WHERE user_id = %s AND event_id = %s", (owner_scope_id, event_id))
         else:
-            cursor.execute("SELECT id, name, parent_id FROM folders WHERE user_id = %s AND event_id IS NULL", (session["user_id"],))
+            cursor.execute("SELECT id, name, parent_id FROM folders WHERE user_id = %s AND event_id IS NULL", (owner_scope_id,))
         paths = folder_paths(cursor.fetchall())
+        if owner_scope_id is None and super_admin_workspace:
+            admin_owner_ids = query_all("SELECT id, username FROM users ORDER BY id")
+            move_destinations = []
+            for owner in admin_owner_ids:
+                destinations = move_destination_options(owner["id"])
+                if move_destinations and destinations and destinations[0].get("kind") == "library":
+                    destinations = destinations[1:]
+                for destination_option in destinations:
+                    if destination_option.get("kind") == "events":
+                        destination_option["name"] = f"{owner['username']} · Events"
+                    elif destination_option.get("kind") != "library":
+                        destination_option["name"] = f"{destination_option['name']} ({owner['username']})"
+                move_destinations.extend(destinations)
+        else:
+            move_destinations = move_destination_options(owner_scope_id)
         cursor.close()
         workspace_root_location = (
             format_item_label(current_event["name"]) if section == "events" and current_event
@@ -2589,7 +2655,7 @@ def dashboard():
             date_workspace_events=date_workspace_events,
             is_trash=deleted,
             move_folders=move_folders,
-            move_destinations=move_destination_options(session["user_id"]),
+            move_destinations=move_destinations,
             sidebar_events=sidebar_events,
             search_query=search_query,
             calendar_auto_open=request.args.get("calendar") == "open",
@@ -2653,7 +2719,7 @@ def search_suggestions():
         abort(404)
 
     deleted = section == "trash"
-    owner_id = session["user_id"]
+    owner_id = None if is_super_admin_principal() else session["user_id"]
     current_event = None
     if event_id is not None:
         if section != "events":
@@ -2661,6 +2727,7 @@ def search_suggestions():
         current_event = owned_event(event_id)
         if not current_event:
             abort(404)
+        owner_id = current_event["user_id"]
 
     folder_scope = []
     if folder_id is not None:
@@ -2671,17 +2738,20 @@ def search_suggestions():
             or (section != "events" and current_folder.get("event_id") is not None)
         ):
             abort(404)
+        owner_id = current_folder["user_id"]
         folder_scope = [folder_id, *folder_descendants(folder_id)]
 
     search_term = f"%{query}%"
+    scoped_owner_sql = "" if owner_id is None else "user_id = %s AND "
+    scoped_owner_values = () if owner_id is None else (owner_id,)
     cursor = get_db().cursor(dictionary=True)
     try:
         if section == "events" and event_id is None:
             cursor.execute(
                 "SELECT id, name, event_type FROM events "
-                "WHERE user_id = %s AND is_deleted = FALSE AND name LIKE %s "
+                f"WHERE {scoped_owner_sql}is_deleted = FALSE AND name LIKE %s "
                 "ORDER BY name LIMIT 6",
-                (owner_id, search_term),
+                (*scoped_owner_values, search_term),
             )
             matches = [
                 {
@@ -2713,22 +2783,22 @@ def search_suggestions():
 
             cursor.execute(
                 "SELECT id, name, parent_id FROM folders "
-                f"WHERE user_id = %s AND is_deleted = %s AND name LIKE %s{folder_condition}{event_condition} "
+                f"WHERE {scoped_owner_sql}is_deleted = %s AND name LIKE %s{folder_condition}{event_condition} "
                 "ORDER BY name LIMIT 6",
-                (owner_id, deleted, search_term, *folder_values, *event_values),
+                (*scoped_owner_values, deleted, search_term, *folder_values, *event_values),
             )
             folders = cursor.fetchall()
             cursor.execute(
                 "SELECT id, original_filename, folder_id, mime_type FROM files "
-                f"WHERE user_id = %s AND is_deleted = %s AND original_filename LIKE %s{file_condition}{event_condition} "
+                f"WHERE {scoped_owner_sql}is_deleted = %s AND original_filename LIKE %s{file_condition}{event_condition} "
                 "ORDER BY uploaded_at DESC LIMIT 6",
-                (owner_id, deleted, search_term, *folder_values, *event_values),
+                (*scoped_owner_values, deleted, search_term, *folder_values, *event_values),
             )
             files = cursor.fetchall()
             cursor.execute(
                 "SELECT id, name, parent_id FROM folders "
-                f"WHERE user_id = %s AND is_deleted = %s{event_condition}",
-                (owner_id, deleted, *event_values),
+                f"WHERE {scoped_owner_sql}is_deleted = %s{event_condition}",
+                (*scoped_owner_values, deleted, *event_values),
             )
             paths = folder_paths(cursor.fetchall())
             base_location = format_item_label(current_event["name"]) if current_event else ("Trash" if deleted else "Library")
@@ -2767,8 +2837,8 @@ def search_suggestions():
             if section == "trash" and len(matches) <= 5:
                 cursor.execute(
                     "SELECT id, name, event_type FROM events "
-                    "WHERE user_id = %s AND is_deleted = TRUE AND name LIKE %s ORDER BY name LIMIT 6",
-                    (owner_id, search_term),
+                    f"WHERE {scoped_owner_sql}is_deleted = TRUE AND name LIKE %s ORDER BY name LIMIT 6",
+                    (*scoped_owner_values, search_term),
                 )
                 for item in cursor.fetchall():
                     matches.append({
@@ -3046,7 +3116,6 @@ def upload():
                 abort(400)
     else:
         folder_id = valid_destination(raw_folder_id)
-        upload_owner_id = session["user_id"]
         target_folder = owned_folder(folder_id) if folder_id else None
         event_id = valid_event(raw_event_id)
         if target_folder:
@@ -3054,6 +3123,8 @@ def upload():
             if event_id is not None and folder_event_id != event_id:
                 abort(400)
             event_id = folder_event_id
+        target_event = owned_event(event_id) if event_id else None
+        upload_owner_id = target_folder["user_id"] if target_folder else target_event["user_id"] if target_event else g.principal_id if is_super_admin_principal() else session["user_id"]
 
     if share_context and share_context["kind"] == "event":
         upload_return_url = url_for("public_event", share_token=share_context["token"], folder=folder_id) if folder_id else url_for("public_event", share_token=share_context["token"])
@@ -3472,6 +3543,7 @@ def service_worker():
 
 
 @app.get("/preview/<int:file_id>")
+@login_or_public_link_required
 def preview(file_id):
     share_context = request_share_context()
     try:
@@ -3548,6 +3620,7 @@ def token_preview(share_token):
 
 
 @app.get("/preview-content/<int:file_id>")
+@login_or_public_link_required
 def preview_content(file_id):
     share_context = request_share_context()
     try:
@@ -3707,7 +3780,7 @@ def delete(file_id):
             flash("File not found or access denied.", "error")
             return redirect_to_workspace()
         cursor = get_db().cursor()
-        cursor.execute("UPDATE files SET original_folder_id = folder_id, is_deleted = TRUE, deleted_at = NOW() WHERE id = %s AND user_id = %s", (file_id, session["user_id"]))
+        cursor.execute("UPDATE files SET original_folder_id = folder_id, is_deleted = TRUE, deleted_at = NOW() WHERE id = %s AND user_id = %s", (file_id, record["user_id"]))
         get_db().commit()
         cursor.close()
         flash("File moved to Trash.", "danger")
@@ -3730,6 +3803,8 @@ def create_folder():
         if event_id is not None and parent_event_id != event_id:
             abort(400)
         event_id = parent_event_id
+    target_event = owned_event(event_id) if event_id else None
+    folder_owner_id = parent_folder["user_id"] if parent_folder else target_event["user_id"] if target_event else g.principal_id if is_super_admin_principal() else session["user_id"]
     if not name:
         flash("Enter a valid folder name.", "error")
     else:
@@ -3737,7 +3812,7 @@ def create_folder():
         try:
             cursor.execute(
                 "INSERT INTO folders (user_id, parent_id, event_id, name, share_token) VALUES (%s, %s, %s, %s, %s)",
-                (session["user_id"], parent_id, event_id, name, secrets.token_urlsafe(32)),
+                (folder_owner_id, parent_id, event_id, name, secrets.token_urlsafe(32)),
             )
             get_db().commit()
             flash("Folder created.", "success")
@@ -3855,7 +3930,7 @@ def update_event():
     try:
         cursor.execute(
             "UPDATE events SET name = %s, event_type = %s WHERE id = %s AND user_id = %s AND is_deleted = FALSE",
-            (safe_name, event_type, int(raw_id), session["user_id"]),
+            (safe_name, event_type, int(raw_id), event["user_id"]),
         )
         if cursor.rowcount != 1:
             abort(404)
@@ -3880,9 +3955,13 @@ def star_items():
         if kind not in {"file", "folder", "event"} or not raw_id.isdigit():
             abort(400)
         table = "files" if kind == "file" else "folders" if kind == "folder" else "events"
+        item_id = int(raw_id)
+        record = owned_file(item_id) if kind == "file" else owned_folder(item_id) if kind == "folder" else owned_event(item_id)
+        if not record:
+            abort(404)
         cursor = get_db().cursor()
         try:
-            cursor.execute(f"UPDATE {table} SET is_starred = %s WHERE id = %s AND user_id = %s AND is_deleted = FALSE", (starred, int(raw_id), session["user_id"]))
+            cursor.execute(f"UPDATE {table} SET is_starred = %s WHERE id = %s AND user_id = %s AND is_deleted = FALSE", (starred, item_id, record["user_id"]))
             get_db().commit()
         finally:
             cursor.close()
@@ -3910,6 +3989,7 @@ def move_items():
             abort(404)
         destination = None
         destination_event_id = destination_event["id"]
+        destination_owner_id = destination_event["user_id"]
     elif raw_destination and raw_destination.startswith("folder:"):
         raw_folder_id = raw_destination.partition(":")[2]
         if not raw_folder_id.isdigit():
@@ -3919,12 +3999,14 @@ def move_items():
             abort(404)
         destination = destination_folder["id"]
         destination_event_id = destination_folder.get("event_id")
+        destination_owner_id = destination_folder["user_id"]
     elif str(raw_destination).isdigit():
         destination_folder = accessible_folder(int(raw_destination), require_owner=True, share_context=share_context)
         if not destination_folder:
             abort(404)
         destination = destination_folder["id"]
         destination_event_id = destination_folder.get("event_id")
+        destination_owner_id = destination_folder["user_id"]
     else:
         abort(400)
 
@@ -3938,6 +4020,10 @@ def move_items():
             folder = accessible_folder(item_id, require_owner=True, share_context=share_context)
             if not folder:
                 abort(404)
+            if destination is not None and folder["user_id"] != destination_owner_id:
+                abort(400)
+            if destination_event_id is not None and folder["user_id"] != destination_owner_id:
+                abort(400)
             if folder.get("event_id") is not None:
                 abort(400)
             descendants = folder_descendants(item_id, owner_id=folder["user_id"])
@@ -3950,6 +4036,10 @@ def move_items():
             file_record = accessible_file(item_id, require_owner=True, share_context=share_context)
             if not file_record:
                 abort(404)
+            if destination is not None and file_record["user_id"] != destination_owner_id:
+                abort(400)
+            if destination_event_id is not None and file_record["user_id"] != destination_owner_id:
+                abort(400)
             if file_record.get("event_id") is not None:
                 abort(400)
             if file_record.get("folder_id") == destination and destination_event_id is None:
@@ -4002,6 +4092,7 @@ def move_event_items():
     if not source_event:
         abort(404)
     source_event_id = source_event["id"]
+    source_owner_id = source_event["user_id"]
     raw_destination = request.form.get("destination_id", "")
     destination_folder = None
     if raw_destination.startswith("event:"):
@@ -4011,6 +4102,8 @@ def move_event_items():
         destination_event = owned_event(int(raw_event_id))
         if not destination_event:
             abort(404)
+        if destination_event["user_id"] != source_owner_id:
+            abort(400)
         destination = None
         destination_event_id = destination_event["id"]
     elif raw_destination.startswith("folder:"):
@@ -4020,6 +4113,8 @@ def move_event_items():
         destination_folder = accessible_folder(int(raw_folder_id), require_owner=True, share_context=share_context)
         if not destination_folder:
             abort(404)
+        if destination_folder["user_id"] != source_owner_id:
+            abort(400)
         destination_event_id = destination_folder.get("event_id")
         if destination_event_id is None or not owned_event(destination_event_id):
             abort(400)
@@ -4038,6 +4133,8 @@ def move_event_items():
             record = accessible_folder(item_id, require_owner=True, share_context=share_context)
             if not record:
                 abort(404)
+            if record["user_id"] != source_owner_id:
+                abort(400)
             if record.get("event_id") != source_event_id or source_event_id == destination_event_id:
                 abort(400)
             descendants = folder_descendants(item_id, owner_id=record["user_id"])
@@ -4048,6 +4145,8 @@ def move_event_items():
             record = accessible_file(item_id, require_owner=True, share_context=share_context)
             if not record:
                 abort(404)
+            if record["user_id"] != source_owner_id:
+                abort(400)
             if record.get("event_id") != source_event_id or source_event_id == destination_event_id:
                 abort(400)
             operations.append((kind, record, None))
@@ -4094,7 +4193,9 @@ def selected_items_from_form(include_deleted=False):
             abort(400)
         table = "files" if kind == "file" else "folders" if kind == "folder" else "events"
         deleted_condition = "" if include_deleted else " AND is_deleted = FALSE"
-        record = query_one(f"SELECT * FROM {table} WHERE id = %s AND user_id = %s{deleted_condition}", (int(raw_id), session["user_id"]))
+        owner_condition = "" if is_super_admin_principal() else " AND user_id = %s"
+        values = (int(raw_id),) if is_super_admin_principal() else (int(raw_id), session["user_id"])
+        record = query_one(f"SELECT * FROM {table} WHERE id = %s{owner_condition}{deleted_condition}", values)
         if not record:
             abort(404)
         selected.append((kind, int(raw_id), record))
@@ -4104,20 +4205,21 @@ def selected_items_from_form(include_deleted=False):
 @app.post("/items/trash")
 @login_required
 def trash_items():
-    for kind, item_id, _record in selected_items_from_form():
+    for kind, item_id, record in selected_items_from_form():
+        owner_id = record["user_id"]
         cursor = get_db().cursor()
         try:
             if kind == "event":
-                cursor.execute("UPDATE events SET is_deleted = TRUE, deleted_at = NOW() WHERE id = %s AND user_id = %s", (item_id, session["user_id"]))
+                cursor.execute("UPDATE events SET is_deleted = TRUE, deleted_at = NOW() WHERE id = %s AND user_id = %s", (item_id, owner_id))
                 cursor.execute(
                     "UPDATE folders SET original_parent_id = parent_id, is_deleted = TRUE, deleted_at = NOW() "
                     "WHERE user_id = %s AND event_id = %s AND is_deleted = FALSE",
-                    (session["user_id"], item_id),
+                    (owner_id, item_id),
                 )
                 cursor.execute(
                     "UPDATE files SET original_folder_id = folder_id, is_deleted = TRUE, deleted_at = NOW() "
                     "WHERE user_id = %s AND event_id = %s AND is_deleted = FALSE",
-                    (session["user_id"], item_id),
+                    (owner_id, item_id),
                 )
             else:
                 table = "files" if kind == "file" else "folders"
@@ -4126,15 +4228,15 @@ def trash_items():
                 cursor.execute(
                     f"UPDATE {table} SET {original_column} = {location_column}, is_deleted = TRUE, deleted_at = NOW() "
                     "WHERE id = %s AND user_id = %s",
-                    (item_id, session["user_id"]),
+                    (item_id, owner_id),
                 )
             if kind == "folder":
-                descendants = folder_descendants(item_id)
+                descendants = folder_descendants(item_id, owner_id=owner_id)
                 if descendants:
                     placeholders = ",".join(["%s"] * len(descendants))
-                    cursor.execute(f"UPDATE folders SET is_deleted = TRUE, deleted_at = NOW() WHERE user_id = %s AND id IN ({placeholders})", (session["user_id"], *descendants))
-                    cursor.execute(f"UPDATE files SET is_deleted = TRUE, deleted_at = NOW() WHERE user_id = %s AND folder_id IN ({placeholders})", (session["user_id"], *descendants))
-                cursor.execute("UPDATE files SET is_deleted = TRUE, deleted_at = NOW() WHERE user_id = %s AND folder_id = %s", (session["user_id"], item_id))
+                    cursor.execute(f"UPDATE folders SET is_deleted = TRUE, deleted_at = NOW() WHERE user_id = %s AND id IN ({placeholders})", (owner_id, *descendants))
+                    cursor.execute(f"UPDATE files SET is_deleted = TRUE, deleted_at = NOW() WHERE user_id = %s AND folder_id IN ({placeholders})", (owner_id, *descendants))
+                cursor.execute("UPDATE files SET is_deleted = TRUE, deleted_at = NOW() WHERE user_id = %s AND folder_id = %s", (owner_id, item_id))
             get_db().commit()
         finally:
             cursor.close()
@@ -4146,26 +4248,29 @@ def trash_items():
 @login_required
 def restore_items():
     for kind, item_id, record in selected_items_from_form(include_deleted=True):
+        owner_id = record["user_id"]
         if not record["is_deleted"]:
             continue
         cursor = get_db().cursor()
         try:
             if kind == "event":
-                cursor.execute("UPDATE events SET is_deleted = FALSE, deleted_at = NULL WHERE id = %s AND user_id = %s", (item_id, session["user_id"]))
-                cursor.execute("UPDATE folders SET is_deleted = FALSE, deleted_at = NULL WHERE user_id = %s AND event_id = %s", (session["user_id"], item_id))
-                cursor.execute("UPDATE files SET is_deleted = FALSE, deleted_at = NULL WHERE user_id = %s AND event_id = %s", (session["user_id"], item_id))
+                cursor.execute("UPDATE events SET is_deleted = FALSE, deleted_at = NULL WHERE id = %s AND user_id = %s", (item_id, owner_id))
+                cursor.execute("UPDATE folders SET is_deleted = FALSE, deleted_at = NULL WHERE user_id = %s AND event_id = %s", (owner_id, item_id))
+                cursor.execute("UPDATE files SET is_deleted = FALSE, deleted_at = NULL WHERE user_id = %s AND event_id = %s", (owner_id, item_id))
             elif kind == "folder":
                 original = record.get("original_parent_id")
-                target = original if original and owned_folder(original) else None
-                folder_ids = [item_id, *folder_descendants(item_id, include_deleted=True)]
+                original_folder = folder_record(original) if original else None
+                target = original if original_folder and original_folder["user_id"] == owner_id else None
+                folder_ids = [item_id, *folder_descendants(item_id, owner_id=owner_id, include_deleted=True)]
                 placeholders = ",".join(["%s"] * len(folder_ids))
-                cursor.execute("UPDATE folders SET parent_id = %s, is_deleted = FALSE, deleted_at = NULL WHERE id = %s AND user_id = %s", (target, item_id, session["user_id"]))
-                cursor.execute(f"UPDATE folders SET is_deleted = FALSE, deleted_at = NULL WHERE user_id = %s AND id IN ({placeholders})", (session["user_id"], *folder_ids))
-                cursor.execute(f"UPDATE files SET is_deleted = FALSE, deleted_at = NULL WHERE user_id = %s AND folder_id IN ({placeholders})", (session["user_id"], *folder_ids))
+                cursor.execute("UPDATE folders SET parent_id = %s, is_deleted = FALSE, deleted_at = NULL WHERE id = %s AND user_id = %s", (target, item_id, owner_id))
+                cursor.execute(f"UPDATE folders SET is_deleted = FALSE, deleted_at = NULL WHERE user_id = %s AND id IN ({placeholders})", (owner_id, *folder_ids))
+                cursor.execute(f"UPDATE files SET is_deleted = FALSE, deleted_at = NULL WHERE user_id = %s AND folder_id IN ({placeholders})", (owner_id, *folder_ids))
             else:
                 original = record.get("original_folder_id")
-                target = original if original and owned_folder(original) else None
-                cursor.execute("UPDATE files SET folder_id = %s, is_deleted = FALSE, deleted_at = NULL WHERE id = %s AND user_id = %s", (target, item_id, session["user_id"]))
+                original_folder = folder_record(original) if original else None
+                target = original if original_folder and original_folder["user_id"] == owner_id else None
+                cursor.execute("UPDATE files SET folder_id = %s, is_deleted = FALSE, deleted_at = NULL WHERE id = %s AND user_id = %s", (target, item_id, owner_id))
             get_db().commit()
         finally:
             cursor.close()
@@ -4198,19 +4303,22 @@ def permanent_delete_items():
 @login_required
 def empty_trash():
     cursor = get_db().cursor(dictionary=True)
+    owner_id = None if is_super_admin_principal() else session["user_id"]
+    owner_sql = "" if owner_id is None else "user_id = %s AND "
+    owner_values = () if owner_id is None else (owner_id,)
     try:
-        cursor.execute("SELECT id, user_id, name FROM events WHERE user_id = %s AND is_deleted = TRUE", (session["user_id"],))
+        cursor.execute("SELECT id, user_id, name FROM events WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
         for event in cursor.fetchall():
             permanently_delete_event_record(cursor, event)
-        cursor.execute("SELECT id, user_id, name FROM folders WHERE user_id = %s AND is_deleted = TRUE ORDER BY id", (session["user_id"],))
+        cursor.execute("SELECT id, user_id, name FROM folders WHERE " + owner_sql + "is_deleted = TRUE ORDER BY id", owner_values)
         deleted_folder_ids = set()
         for folder in cursor.fetchall():
             if folder["id"] in deleted_folder_ids:
                 continue
-            subtree_ids = [folder["id"], *folder_descendants(folder["id"], owner_id=session["user_id"], include_deleted=True)]
+            subtree_ids = [folder["id"], *folder_descendants(folder["id"], owner_id=folder["user_id"], include_deleted=True)]
             permanently_delete_folder_record(cursor, folder)
             deleted_folder_ids.update(subtree_ids)
-        cursor.execute("SELECT id, user_id, stored_filename FROM files WHERE user_id = %s AND is_deleted = TRUE", (session["user_id"],))
+        cursor.execute("SELECT id, user_id, stored_filename FROM files WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
         for record in cursor.fetchall():
             permanently_delete_file_record(cursor, record)
         get_db().commit()
@@ -4238,7 +4346,6 @@ def bulk_download():
 
     archive = BytesIO()
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
-        user_directory = UPLOAD_FOLDER / str(session["user_id"])
         written_paths = set()
 
         def unique_archive_path(path):
@@ -4254,7 +4361,7 @@ def bulk_download():
         for kind, _item_id, record in selected:
             if kind != "file":
                 continue
-            path = UPLOAD_FOLDER / str(session["user_id"]) / record["stored_filename"]
+            path = UPLOAD_FOLDER / str(record["user_id"]) / record["stored_filename"]
             if path.is_file():
                 bundle.write(path, arcname=unique_archive_path(record["original_filename"]))
 
@@ -4272,12 +4379,12 @@ def bulk_download():
             try:
                 cursor.execute(
                     f"SELECT id, parent_id, name FROM folders WHERE user_id = %s AND is_deleted = FALSE AND id IN ({placeholders})",
-                    (session["user_id"], *folder_ids),
+                    (folder["user_id"], *folder_ids),
                 )
                 folders = cursor.fetchall()
                 cursor.execute(
                     f"SELECT stored_filename, original_filename, folder_id FROM files WHERE user_id = %s AND is_deleted = FALSE AND folder_id IN ({placeholders})",
-                    (session["user_id"], *folder_ids),
+                    (folder["user_id"], *folder_ids),
                 )
                 files = cursor.fetchall()
             finally:

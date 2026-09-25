@@ -5575,34 +5575,80 @@ hr {
 
 /* Super Admin user list */
 .admin-users-table-wrap {
+  height: auto;
   max-height: 360px;
   overflow: auto;
   max-width: 100%;
-  border: 1px solid var(--line);
+  border: 0;
+  overscroll-behavior: contain;
 }
 .admin-users-table {
+  display: table;
   width: 100%;
-  min-width: 920px;
-  border-collapse: separate;
-  border-spacing: 0;
+  height: auto;
+  min-width: 1100px;
+  table-layout: fixed;
+  border-collapse: collapse;
 }
+.admin-users-table thead {
+  display: table-header-group;
+  width: auto;
+}
+.admin-users-table tbody {
+  display: table-row-group;
+  width: auto;
+  min-height: 0;
+  flex: none;
+  overflow: visible;
+}
+.admin-users-table tbody tr {
+  display: table-row;
+  width: auto;
+  table-layout: auto;
+}
+.admin-users-table th,
+.admin-users-table td {
+  display: table-cell;
+  width: auto;
+  padding: 14px 18px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.admin-users-table td::before { display: none; content: none; }
 .admin-users-table th {
   position: sticky;
   top: 0;
   z-index: 2;
   background: var(--surface, #fff);
 }
-.admin-users-table th,
-.admin-users-table td { vertical-align: top; }
-.admin-user-actions { min-width: 210px; }
-.admin-user-actions form { margin: 0 0 6px; }
+.admin-users-table th:nth-child(1), .admin-users-table td:nth-child(1) { width: 12%; }
+.admin-users-table th:nth-child(2), .admin-users-table td:nth-child(2) { width: 18%; }
+.admin-users-table th:nth-child(3), .admin-users-table td:nth-child(3) { width: 9%; }
+.admin-users-table th:nth-child(4), .admin-users-table td:nth-child(4) { width: 12%; }
+.admin-users-table th:nth-child(5), .admin-users-table td:nth-child(5) { width: 10%; }
+.admin-users-table th:nth-child(6), .admin-users-table td:nth-child(6) { width: 7%; }
+.admin-users-table th:nth-child(7), .admin-users-table td:nth-child(7) { width: 7%; }
+.admin-users-table th:nth-child(8), .admin-users-table td:nth-child(8) { width: 25%; }
+.admin-user-actions { min-width: 250px; }
+.admin-user-actions form { margin: 0; }
 .admin-user-actions button,
 .admin-user-actions select { max-width: 100%; }
 @media (max-width: 480px) {
-  .auth-page:has(.admin-users-table) { min-width: 0; overflow-x: hidden; }
-  .admin-users-table-wrap { width: 100%; overscroll-behavior-x: contain; }
-  .admin-users-table { min-width: 820px; }
-  .admin-user-actions { min-width: 190px; }
+  .settings-workspace-content:has(.admin-users-table) {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  .admin-users-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior-x: contain;
+  }
+  .admin-users-table { min-width: 1100px; }
 }
 
 /* Create User modal in Super Admin Settings */
