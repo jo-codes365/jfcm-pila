@@ -3,7 +3,7 @@
 {% block content %}
 <main class="auth-page"><section class="auth-card" style="max-width:1100px;width:100%">
   <h1>Manage users</h1>
-  <p><a href="{{ url_for('manage_public_shares') }}">Manage public sharing</a> · <a href="{{ url_for('system_settings') }}">System settings</a></p>
+  <p><a href="{{ url_for('system_settings') }}">System settings</a></p>
   <h2>Create user</h2>
   <form method="post" class="stack-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -27,7 +27,6 @@
       {% endif %}
     </td>
   </tr>{% endfor %}</tbody></table></div>
-  <form method="post" action="{{ url_for('clear_user_workspace') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Return to Super Admin workspace</button></form>
   <p><a href="{{ url_for('settings') }}">Back to settings</a></p>
 </section></main>
 {% endblock %}

@@ -5623,14 +5623,12 @@ hr {
   z-index: 2;
   background: var(--surface, #fff);
 }
-.admin-users-table th:nth-child(1), .admin-users-table td:nth-child(1) { width: 12%; }
-.admin-users-table th:nth-child(2), .admin-users-table td:nth-child(2) { width: 18%; }
-.admin-users-table th:nth-child(3), .admin-users-table td:nth-child(3) { width: 9%; }
-.admin-users-table th:nth-child(4), .admin-users-table td:nth-child(4) { width: 12%; }
-.admin-users-table th:nth-child(5), .admin-users-table td:nth-child(5) { width: 10%; }
-.admin-users-table th:nth-child(6), .admin-users-table td:nth-child(6) { width: 7%; }
-.admin-users-table th:nth-child(7), .admin-users-table td:nth-child(7) { width: 7%; }
-.admin-users-table th:nth-child(8), .admin-users-table td:nth-child(8) { width: 25%; }
+.admin-users-table th:nth-child(1), .admin-users-table td:nth-child(1) { width: 16%; }
+.admin-users-table th:nth-child(2), .admin-users-table td:nth-child(2) { width: 21%; }
+.admin-users-table th:nth-child(3), .admin-users-table td:nth-child(3) { width: 12%; }
+.admin-users-table th:nth-child(4), .admin-users-table td:nth-child(4) { width: 14%; }
+.admin-users-table th:nth-child(5), .admin-users-table td:nth-child(5) { width: 17%; }
+.admin-users-table th:nth-child(6), .admin-users-table td:nth-child(6) { width: 20%; }
 .admin-user-actions { min-width: 250px; }
 .admin-user-actions form { margin: 0; }
 .admin-user-actions button,
@@ -5652,20 +5650,45 @@ hr {
 }
 
 /* Create User modal in Super Admin Settings */
-.admin-users-toolbar {
+.admin-users-heading {
   align-items: center;
-  justify-content: space-between;
-  margin: 14px 0 10px;
 }
-.admin-users-toolbar h3 { margin: 0; }
+.admin-users-heading > div { min-width: 0; flex: 1; }
+.admin-users-heading > button { flex: 0 0 auto; margin-left: auto; }
 .admin-create-user-modal { overflow-y: auto; }
 .admin-create-user-modal .modal-card {
   max-height: calc(100vh - 40px);
   overflow-y: auto;
 }
 .admin-create-user-modal .modal-card h2 { margin: 0 32px 8px 0; }
+.admin-create-user-modal .btn-close {
+  position: absolute;
+  top: 12px;
+  right: 13px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #64748b;
+  background: transparent;
+  opacity: .72;
+  cursor: pointer;
+}
+.admin-create-user-modal .btn-close::before { content: "×"; font-size: 1.6rem; line-height: 1; }
+.admin-create-user-modal .btn-close:hover { color: #334155; background: #f1f5f9; opacity: 1; }
 .admin-create-user-modal .stack-form { margin-top: 16px; }
 .admin-create-user-modal .stack-form label { text-align: left; }
+.admin-create-user-modal .deactivation-confirm-label > span { display: flex; align-items: center; gap: 8px; }
+.admin-create-user-modal .deactivation-confirm-label input[type="checkbox"] {
+  width: 16px;
+  min-height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: #359460;
+}
 .admin-create-user-modal .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 .admin-create-user-modal .modal-actions button { margin-top: 0; }
 .admin-create-user-messages:empty { display: none; }
@@ -5678,7 +5701,8 @@ hr {
   font-size: .88rem;
 }
 @media (max-width: 480px) {
-  .admin-users-toolbar { flex-wrap: wrap; }
+  .admin-users-heading { flex-wrap: wrap; }
+  .admin-users-heading > button { margin-left: 30px; }
   .admin-create-user-modal { padding: 12px; }
   .admin-create-user-modal .modal-card { width: 100%; max-height: calc(100vh - 24px); padding: 24px 18px; }
   .admin-create-user-modal .modal-actions { flex-wrap: wrap; }

@@ -2101,10 +2101,8 @@ def settings():
         if session.get("role") == "super-admin":
             admin_users = query_all(
                 "SELECT u.id, u.email, u.username, u.role, u.is_active, u.created_at, "
-                "COALESCE((SELECT SUM(f.file_size) FROM files f WHERE f.user_id = u.id AND f.is_deleted = FALSE), 0) AS storage_used, "
-                "(SELECT COUNT(*) FROM files f WHERE f.user_id = u.id) AS file_count, "
-                "(SELECT COUNT(*) FROM events e WHERE e.user_id = u.id) AS event_count "
-                "FROM users u ORDER BY u.id"
+                "COALESCE((SELECT SUM(f.file_size) FROM files f WHERE f.user_id = u.id AND f.is_deleted = FALSE), 0) AS storage_used "
+                "FROM users u WHERE u.role IS NULL OR u.role <> 'super-admin' ORDER BY u.id"
             )
     except MySQLError:
         app.logger.exception("Settings database error")
