@@ -136,7 +136,7 @@
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               {% for theme, label, icon in [('light', 'Light', 'bi-sun'), ('dark', 'Dark', 'bi-moon'), ('system', 'System', 'bi-laptop')] %}
               <label><input type="radio" name="theme" value="{{ theme }}" {% if theme_preference == theme %}checked{% endif %}><span><i class="bi {{ icon }}"></i>{{ label }}</span></label>
-              {% endfor %}<button class="button secondary" type="submit">Save appearance</button>
+              {% endfor %}<button class="button secondary" type="submit">Save</button>
             </form>
             {% endif %}
           </section>
