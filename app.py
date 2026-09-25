@@ -2267,21 +2267,15 @@ def super_admin_dashboard():
             "SELECT created_at, username, action, item FROM audit_logs "
             "ORDER BY created_at DESC, id DESC LIMIT 5"
         )
-        upcoming_events = query_all(
-            "SELECT id, name, event_date FROM events "
-            "WHERE is_deleted = FALSE AND event_date >= CURDATE() "
-            "ORDER BY event_date ASC, id ASC LIMIT 2"
-        )
-        latest_event_limit = max(0, 5 - len(upcoming_events))
-        latest_events = query_all(
-            "SELECT id, name, event_date FROM events "
-            "WHERE is_deleted = FALSE AND event_date < CURDATE() "
-            "ORDER BY event_date DESC, id DESC LIMIT %s",
-            (latest_event_limit,),
+        dashboard_events = query_all(
+            "SELECT id, name, event_date, event_type FROM events "
+            "WHERE is_deleted = FALSE "
+            "ORDER BY event_date DESC, id DESC LIMIT 5"
         )
         user_overview = query_one(
             "SELECT COUNT(CASE WHEN role IS NOT NULL THEN 1 END) AS total_users, "
             "COALESCE(SUM(CASE WHEN role IN ('admin', 'super-admin') THEN 1 ELSE 0 END), 0) AS admin_count, "
+            "COALESCE(SUM(CASE WHEN role IS NOT NULL AND is_active = TRUE THEN 1 ELSE 0 END), 0) AS active_count, "
             "COALESCE(SUM(CASE WHEN role IS NOT NULL AND is_active = FALSE THEN 1 ELSE 0 END), 0) AS inactive_count "
             "FROM users",
             (),
@@ -2298,8 +2292,7 @@ def super_admin_dashboard():
     return render_template(
         "super_admin_dashboard.html",
         recent_activity=recent_activity,
-        upcoming_events=upcoming_events,
-        latest_events=latest_events,
+        dashboard_events=dashboard_events,
         user_overview=user_overview or {},
         sidebar_events=sidebar_events,
         section="super-admin-dashboard",

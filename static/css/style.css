@@ -2594,15 +2594,17 @@ table tbody tr:nth-child(even) {
   object-fit: cover;
 }
 .public-workspace-event-preview.has-crop-motion {
-  animation: public-event-image-pan 24s ease-in-out infinite alternate;
+  animation: public-event-image-pan 20s ease-in-out infinite alternate;
   will-change: transform;
 }
 @keyframes public-event-image-pan {
-  from { transform: scale(1.04) translate3d(-1%, -1%, 0); }
-  to { transform: scale(1.1) translate3d(1%, 1%, 0); }
+  from { transform: scale(1.06) translate3d(-2%, -2%, 0); }
+  to { transform: scale(1.14) translate3d(2%, 2%, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .public-workspace-event-preview.has-crop-motion { animation: none; }
+  .public-workspace-event-preview.has-crop-motion {
+    animation: none;
+  }
 }
 .public-workspace-featured-copy,
 .public-workspace-featured-event > i {
@@ -5728,6 +5730,9 @@ hr {
 }
 .dashboard-event-list a:hover { color: var(--primary-dark); }
 .dashboard-event-list a > span { min-width: 0; overflow-wrap: anywhere; }
+.dashboard-event-name { display: flex; align-items: center; gap: 8px; }
+.dashboard-event-name > img { width: 18px; height: 18px; flex: 0 0 18px; object-fit: contain; }
+.dashboard-event-name > span { min-width: 0; overflow-wrap: anywhere; }
 .dashboard-event-list time { flex: 0 0 auto; color: #68756c; font-size: .82rem; }
 .dashboard-event-group-label { color: #68756c; font-size: .8rem; font-weight: 600; }
 .dashboard-empty { color: #68756c; font-size: .88rem; }
