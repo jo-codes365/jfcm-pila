@@ -2110,18 +2110,20 @@ def settings():
             flash("Please sign in again.", "error")
             return redirect(url_for("login"))
         preferences = user_preferences(user_id)
-        storage = query_one(
-            "SELECT COALESCE(SUM(file_size), 0) AS used, COUNT(*) AS file_count "
-            "FROM files WHERE user_id = %s AND is_deleted = FALSE",
-            (user_id,),
-        )
         if session.get("role") == "super-admin":
             # Include each active file record once across every account, including
             # files owned by this Super Admin. COUNT/SUM operate on file records,
             # whose stored filenames are unique in the existing schema.
             storage = query_one(
                 "SELECT COALESCE(SUM(file_size), 0) AS used, COUNT(*) AS file_count "
-                "FROM files WHERE is_deleted = FALSE"
+                "FROM files WHERE is_deleted = FALSE",
+                (),
+            )
+        else:
+            storage = query_one(
+                "SELECT COALESCE(SUM(file_size), 0) AS used, COUNT(*) AS file_count "
+                "FROM files WHERE user_id = %s AND is_deleted = FALSE",
+                (user_id,),
             )
         folders = query_one(
             "SELECT COUNT(*) AS folder_count FROM folders WHERE user_id = %s AND is_deleted = FALSE",
