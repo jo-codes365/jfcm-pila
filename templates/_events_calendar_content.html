@@ -22,7 +22,7 @@
           <span>{{ day }}</span>
         </a>
         {% for event in events_by_day.get(day, []) %}
-        <a class="events-calendar-event-link" href="{{ url_for('dashboard', section='events', event=event.id) }}" aria-label="Open {{ display_name(event.name) }}"><img class="event-icon-inline" src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""></a>
+        <a class="events-calendar-event-link" href="{{ url_for('dashboard', section='events', event=event.id) }}" aria-label="Open {{ format_item_label(event.name) }}"><img class="event-icon-inline" src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""></a>
         {% endfor %}
         {% endif %}
       </div>

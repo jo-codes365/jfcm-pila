@@ -20,13 +20,40 @@
         <div class="settings-page">
           <div class="settings-intro"><h1>Settings</h1><p>Manage your account, appearance, saved offline files, and storage details.</p></div>
           <p id="settings-search-empty" class="settings-search-empty" role="status" hidden>No matching settings</p>
-          {% if session.get('role') == 'super-admin' %}<p><a class="button secondary" href="{{ url_for('manage_users') }}">Manage users</a></p>{% endif %}
+          {% if admin_users is not none %}
+          <section class="settings-section" aria-labelledby="user-management-title">
+            <div class="settings-section-heading"><i class="bi bi-people"></i><div><h2 id="user-management-title">User Management</h2><p>Create accounts and manage library access.</p></div></div>
+            <h3>Create User</h3>
+            <form method="post" action="{{ url_for('manage_users') }}" class="stack-form admin-create-user-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="return_to_settings" value="1">
+              <label>Email (optional)</label><input name="email" type="email" maxlength="255">
+              <label>Username</label><input name="username" required minlength="3" maxlength="20" pattern="[a-z0-9_]{3,20}">
+              <label>Password</label><input name="password" required minlength="6" type="password">
+              <label>Confirm password</label><input name="confirm_password" required minlength="6" type="password">
+              <label>Role</label><select name="role"><option value="admin">Admin</option><option value="">Public Viewer</option></select>
+              <button class="button primary" type="submit">Create User</button>
+            </form>
+            <h3>Users</h3>
+            <div class="admin-users-table-wrap"><table class="admin-users-table"><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Account Status</th><th>Storage Usage</th><th>File Count</th><th>Event Count</th><th>Actions</th></tr></thead><tbody>
+            {% for user in admin_users %}<tr>
+              <td>{{ user.username }}</td><td>{{ user.email or '—' }}</td><td>{{ user.role or 'Public Viewer' }}</td><td>{{ 'Active' if user.is_active else 'Deactivated' }}</td>
+              <td>{{ readable_size(user.storage_used or 0) }}</td><td>{{ user.file_count }}</td><td>{{ user.event_count }}</td><td class="admin-user-actions">
+                <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Manage Files</button></form>
+                <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="section" value="events"><button type="submit" name="open_events" value="1">Manage Events</button></form>
+                {% if user.id != session.get('principal_id', session.get('user_id')) %}
+                {% if user.role != 'super-admin' %}<form method="post" action="{{ url_for('update_user_role', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><select name="role"><option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option><option value="" {% if not user.role %}selected{% endif %}>Public Viewer</option></select><button type="submit">Change Role</button></form>{% endif %}
+                <form method="post" action="{{ url_for('set_user_active', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="active" value="{{ 0 if user.is_active else 1 }}">{% if user.is_active %}<label><input type="checkbox" name="confirm_deactivate" value="1" required> Confirm deactivation</label><button type="submit">Deactivate</button>{% else %}<button type="submit">Reactivate</button>{% endif %}</form>
+                {% endif %}
+              </td>
+            </tr>{% endfor %}</tbody></table></div>
+            <form method="post" action="{{ url_for('clear_user_workspace') }}" class="settings-form-actions"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button secondary" type="submit">Return to Super Admin workspace</button></form>
+          </section>
+          {% endif %}
 
           <section class="settings-section" aria-labelledby="account-settings-title">
             <div class="settings-section-heading"><i class="bi bi-person"></i><div><h2 id="account-settings-title">Account</h2><p>Changes apply only to your signed-in account.</p></div></div>
             <form class="settings-form" method="post" action="{{ url_for('update_settings_account') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <label>Display name<input name="display_name" maxlength="80" value="{{ preferences.display_name or '' }}" autocomplete="name"></label>
               <label>Username<input name="username" required pattern="[a-z0-9_]{3,20}" value="{{ account.username }}" autocomplete="username"></label>
               <label>Email address<input name="email" type="email" maxlength="255" value="{{ account.email or '' }}" autocomplete="email"></label>
               <div class="settings-form-actions"><button class="button primary" type="submit">Save account details</button></div>

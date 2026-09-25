@@ -5557,3 +5557,35 @@ hr {
     transition: none;
   }
 }
+
+/* Super Admin user list */
+.admin-users-table-wrap {
+  max-height: 360px;
+  overflow: auto;
+  max-width: 100%;
+  border: 1px solid var(--line);
+}
+.admin-users-table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.admin-users-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface, #fff);
+}
+.admin-users-table th,
+.admin-users-table td { vertical-align: top; }
+.admin-user-actions { min-width: 210px; }
+.admin-user-actions form { margin: 0 0 6px; }
+.admin-user-actions button,
+.admin-user-actions select { max-width: 100%; }
+@media (max-width: 480px) {
+  .auth-page:has(.admin-users-table) { min-width: 0; overflow-x: hidden; }
+  .admin-users-table-wrap { width: 100%; overscroll-behavior-x: contain; }
+  .admin-users-table { min-width: 820px; }
+  .admin-user-actions { min-width: 190px; }
+}

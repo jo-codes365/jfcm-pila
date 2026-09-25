@@ -195,7 +195,7 @@
       <div class="preview-title">
         <a id="close-preview" class="button secondary small close-button-link" href="{{ workspace_return_url }}" aria-label="Close preview"><i class="bi bi-x"></i></a>
         <div>
-          <h1>{{ display_name(file.original_filename) }}</h1>
+          <h1>{{ format_item_label(file.original_filename) }}</h1>
           <p>
             {{ clean_file_type(file) }} <span style="color: #000; margin: 0 4px;">|</span> 
             {{ readable_size(file.file_size) }} <span style="color: #000; margin: 0 4px;">|</span> 
@@ -236,7 +236,7 @@
             <button id="preview-properties-button" class="norms" type="button"><i class="bi bi-info-circle"></i> Properties</button>
             {% if not share_context %}
             <hr style="width: 93%; margin: 4px auto; background-color: #ccc; border: 0; height: 1px; display: block;">
-            <button class="norms delete-button delete-trigger" type="button" data-file-id="{{ file.id }}" data-file-name="{{ display_name(file.original_filename) }}"><i class="bi bi-trash"></i> Move to Trash</button>
+            <button class="norms delete-button delete-trigger" type="button" data-file-id="{{ file.id }}" data-file-name="{{ format_item_label(file.original_filename) }}"><i class="bi bi-trash"></i> Move to Trash</button>
             {% endif %}
           </div>
         </div>
@@ -245,7 +245,7 @@
 
     <section class="preview-area{% if file.original_filename.lower().endswith('.png') %} preview-area-png{% endif %}">
       {% if preview_kind == 'image' %}
-        <img class="image-preview" src="{{ url_for('preview_content', file_id=file.id, share_context_kind=share_context.kind, share_context_token=share_context.token) if share_context else url_for('preview_content', file_id=file.id) }}" alt="Preview of {{ display_name(file.original_filename) }}">
+        <img class="image-preview" src="{{ url_for('preview_content', file_id=file.id, share_context_kind=share_context.kind, share_context_token=share_context.token) if share_context else url_for('preview_content', file_id=file.id) }}" alt="Preview of {{ format_item_label(file.original_filename) }}">
       {% elif preview_kind == 'pdf' %}
         <iframe class="document-preview" title="PDF preview" src="{{ url_for('preview_content', file_id=file.id, share_context_kind=share_context.kind, share_context_token=share_context.token) if share_context else url_for('preview_content', file_id=file.id) }}"></iframe>
       {% elif preview_kind == 'text' %}
@@ -340,7 +340,7 @@
           {% else %}
           <button class="move-destination-option" type="button" role="treeitem" aria-selected="false" data-destination-value="{{ destination.value }}" data-destination-kind="{{ destination.kind }}" data-event-id="{{ destination.event_id or '' }}" style="--tree-depth: {{ destination.depth }}">
             <img src="{{ url_for('static', filename='images/' ~ destination.icon_filename) }}" alt="">
-            <span>{{ display_name(destination.name) }}</span>
+            <span>{{ format_item_label(destination.name) }}</span>
           </button>
           {% endif %}
         {% endfor %}
@@ -357,7 +357,7 @@
   <section class="modal-card rename-item-card">
     <h2 id="preview-properties-title">Properties</h2>
     <dl class="item-properties preview-properties-list">
-      <dt>Name</dt><dd>{{ display_name(file.original_filename) }}</dd>
+      <dt>Name</dt><dd>{{ format_item_label(file.original_filename) }}</dd>
       <dt>Type</dt><dd>{{ clean_file_type(file) }}</dd>
       <dt>Size</dt><dd>{{ readable_size(file.file_size) }}</dd>
       <dt>Location</dt><dd>{{ file_location }}</dd>

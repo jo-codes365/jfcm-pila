@@ -163,7 +163,7 @@ It adds the Event link fields (`share_token`, `share_permission`, and `is_share_
 
 ## Upload storage and limits
 
-Files are stored in `uploads/<user_id>/`; this directory is not publicly served. The database keeps both the sanitized original display name and a UUID-based server filename, so duplicate uploads are safe and original filenames never become filesystem paths.
+Files are stored in `uploads/<user_id>/`; this directory is not publicly served. The database keeps both the sanitized original filename and a UUID-based server filename, so duplicate uploads are safe and original filenames never become filesystem paths.
 
 `MAX_FILE_SIZE_MB` defaults to 50. Flask rejects oversized requests using `MAX_CONTENT_LENGTH`, and the upload route also checks the size on the server. Browser-side checks only improve feedback. The dashboard calculates total used storage from metadata; a total quota can be added later.
 

@@ -180,7 +180,6 @@ def ensure_user_preferences_table():
         cursor.execute(
             "CREATE TABLE IF NOT EXISTS user_preferences ("
             "user_id INT UNSIGNED NOT NULL, "
-            "display_name VARCHAR(80) NULL, "
             "theme_preference VARCHAR(10) NOT NULL DEFAULT 'light', "
             "updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, "
             "PRIMARY KEY (user_id), "
@@ -212,22 +211,21 @@ def current_upload_limit_mb():
 def user_preferences(user_id):
     ensure_user_preferences_table()
     return query_one(
-        "SELECT display_name, theme_preference FROM user_preferences WHERE user_id = %s",
+        "SELECT theme_preference FROM user_preferences WHERE user_id = %s",
         (user_id,),
-    ) or {"display_name": "", "theme_preference": "light"}
+    ) or {"theme_preference": "light"}
 
 
-def save_user_preferences(user_id, display_name=None, theme_preference=None):
+def save_user_preferences(user_id, theme_preference=None):
     ensure_user_preferences_table()
     existing = user_preferences(user_id)
-    display_name = existing["display_name"] if display_name is None else display_name
     theme_preference = existing["theme_preference"] if theme_preference is None else theme_preference
     cursor = get_db().cursor()
     try:
         cursor.execute(
-            "INSERT INTO user_preferences (user_id, display_name, theme_preference) VALUES (%s, %s, %s) "
-            "ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), theme_preference = VALUES(theme_preference)",
-            (user_id, display_name, theme_preference),
+            "INSERT INTO user_preferences (user_id, theme_preference) VALUES (%s, %s) "
+            "ON DUPLICATE KEY UPDATE theme_preference = VALUES(theme_preference)",
+            (user_id, theme_preference),
         )
         get_db().commit()
     finally:
@@ -1807,7 +1805,7 @@ def trash_days_remaining(deleted_at):
     return f"{remaining_days} day{'s' if remaining_days != 1 else ''} left"
 
 
-def display_name(name):
+def format_item_label(name):
     """Format stored names for display without changing the stored value."""
     return (name or "").replace("-", " ").replace("_", " ")
 
@@ -1847,7 +1845,7 @@ def utility_processor():
         "clean_file_type": clean_file_type,
         "file_type_key": file_type_key,
         "file_type_icon": file_type_icon,
-        "display_name": display_name,
+        "format_item_label": format_item_label,
         "format_datetime": format_datetime,
         "event_icon_options": EVENT_TYPE_OPTIONS,
         "event_icon_file": event_icon_file,
@@ -2068,6 +2066,15 @@ def settings():
             available_storage = shutil.disk_usage(UPLOAD_FOLDER).free
         except OSError:
             available_storage = None
+        admin_users = None
+        if session.get("role") == "super-admin":
+            admin_users = query_all(
+                "SELECT u.id, u.email, u.username, u.role, u.is_active, u.created_at, "
+                "COALESCE((SELECT SUM(f.file_size) FROM files f WHERE f.user_id = u.id AND f.is_deleted = FALSE), 0) AS storage_used, "
+                "(SELECT COUNT(*) FROM files f WHERE f.user_id = u.id) AS file_count, "
+                "(SELECT COUNT(*) FROM events e WHERE e.user_id = u.id) AS event_count "
+                "FROM users u ORDER BY u.id"
+            )
     except MySQLError:
         app.logger.exception("Settings database error")
         abort(500)
@@ -2090,6 +2097,7 @@ def settings():
         max_file_size_mb=current_upload_limit_mb(),
         offline_cache_scope=current_offline_cache_scope(),
         theme_preference=preferences.get("theme_preference") or "light",
+        admin_users=admin_users,
     )
 
 
@@ -2097,12 +2105,9 @@ def settings():
 @login_required
 def update_settings_account():
     user_id = session["user_id"]
-    display_name_value = request.form.get("display_name", "").strip()
     username = request.form.get("username", "").strip().lower()
     email = request.form.get("email", "").strip().lower() or None
-    if len(display_name_value) > 80:
-        flash("Display name must be 80 characters or fewer.", "error")
-    elif not re.fullmatch(r"[a-z0-9_]{3,20}", username):
+    if not re.fullmatch(r"[a-z0-9_]{3,20}", username):
         flash("Username must be 3-20 characters using letters, numbers, or underscores.", "error")
     elif email and ("@" not in email or len(email) > 255):
         flash("Enter a valid email address.", "error")
@@ -2115,7 +2120,6 @@ def update_settings_account():
                 (username, email, user_id),
             )
             get_db().commit()
-            save_user_preferences(user_id, display_name=display_name_value)
             session["username"] = username
             flash("Account details updated.", "success")
         except MySQLError as error:
@@ -2169,6 +2173,8 @@ def manage_users():
         "(SELECT COUNT(*) FROM events e WHERE e.user_id = u.id) AS event_count "
         "FROM users u ORDER BY u.id"
     )
+    if request.method == "POST" and request.form.get("return_to_settings") == "1":
+        return redirect(url_for("settings"))
     return render_template("admin_users.html", users=users)
 
 
@@ -2189,7 +2195,7 @@ def select_user_workspace(user_id):
 def clear_user_workspace():
     session["user_id"] = session.get("principal_id", session["user_id"])
     session[OFFLINE_CACHE_SCOPE_KEY] = secrets.token_urlsafe(24)
-    return redirect(url_for("manage_users"))
+    return redirect(url_for("settings"))
 
 
 @app.post("/admin/users/<int:user_id>/active")
@@ -2214,7 +2220,7 @@ def set_user_active(user_id):
         raise
     finally:
         cursor.close()
-    return redirect(url_for("manage_users"))
+    return redirect(url_for("settings"))
 
 
 @app.route("/admin/shares", methods=["GET", "POST"])
@@ -2284,7 +2290,7 @@ def update_user_role(user_id):
         flash("User role updated.", "success")
     finally:
         cursor.close()
-    return redirect(url_for("manage_users"))
+    return redirect(url_for("settings"))
 
 
 @app.post("/settings/password")
@@ -2532,7 +2538,7 @@ def dashboard():
         paths = folder_paths(cursor.fetchall())
         cursor.close()
         workspace_root_location = (
-            display_name(current_event["name"]) if section == "events" and current_event
+            format_item_label(current_event["name"]) if section == "events" and current_event
             else "Events" if section == "events"
             else "Library"
         )
@@ -2553,9 +2559,9 @@ def dashboard():
         calendar_context = build_events_calendar_context(calendar_year, calendar_month, dashboard_url_with_updates)
         page_title = "Files"
         if current_folder:
-            page_title = display_name(current_folder["name"])
+            page_title = format_item_label(current_folder["name"])
         elif current_event:
-            page_title = display_name(current_event["name"])
+            page_title = format_item_label(current_event["name"])
         elif section == "events":
             page_title = "Events"
         elif section == "recent":
@@ -2680,7 +2686,7 @@ def search_suggestions():
             matches = [
                 {
                     "kind": "event",
-                    "name": display_name(item["name"]),
+                    "name": format_item_label(item["name"]),
                     "type": event_type_label(item.get("event_type")),
                     "location": "Events",
                     "icon_url": url_for("static", filename=f"images/{event_icon_file(item.get('event_type'))}"),
@@ -2725,12 +2731,12 @@ def search_suggestions():
                 (owner_id, deleted, *event_values),
             )
             paths = folder_paths(cursor.fetchall())
-            base_location = display_name(current_event["name"]) if current_event else ("Trash" if deleted else "Library")
+            base_location = format_item_label(current_event["name"]) if current_event else ("Trash" if deleted else "Library")
             matches = []
             for item in folders:
                 matches.append({
                     "kind": "folder",
-                    "name": display_name(item["name"]),
+                    "name": format_item_label(item["name"]),
                     "type": "Folder",
                     "location": paths.get(item["parent_id"], base_location),
                     "icon_url": url_for("static", filename="images/Folder.png"),
@@ -2752,7 +2758,7 @@ def search_suggestions():
                     item_url = url_for("preview", file_id=item["id"], return_to=parent_workspace_url)
                 matches.append({
                     "kind": "file",
-                    "name": display_name(item["original_filename"]),
+                    "name": format_item_label(item["original_filename"]),
                     "type": clean_file_type(item),
                     "location": paths.get(item["folder_id"], base_location),
                     "icon_url": url_for("static", filename=f"images/{file_type_icon(item)}"),
@@ -2767,7 +2773,7 @@ def search_suggestions():
                 for item in cursor.fetchall():
                     matches.append({
                         "kind": "event",
-                        "name": display_name(item["name"]),
+                        "name": format_item_label(item["name"]),
                         "type": event_type_label(item.get("event_type")),
                         "location": "Trash",
                         "icon_url": url_for("static", filename=f"images/{event_icon_file(item.get('event_type'))}"),
@@ -4362,7 +4368,7 @@ def public_folder(share_token):
 
     return render_template(
         "dashboard.html",
-        page_title=display_name(current_folder["name"]),
+        page_title=format_item_label(current_folder["name"]),
         items=items,
         total_storage=0,
         total_files=len(items),
@@ -4492,7 +4498,7 @@ def render_public_event_workspace(event_id, share_context):
     finally:
         cursor.close()
 
-    event_location = display_name(current_event["name"])
+    event_location = format_item_label(current_event["name"])
     items = (
         [{"kind": "folder", "name": item["name"], "date": item["created_at"], "mime_type": "Folder", "location": paths.get(item["parent_id"], event_location), **item} for item in folders]
         + [{"kind": "file", "name": item["original_filename"], "parent_id": item["folder_id"], "date": item["uploaded_at"], "location": paths.get(item["folder_id"], event_location), **item} for item in files]
@@ -4503,7 +4509,7 @@ def render_public_event_workspace(event_id, share_context):
 
     return render_template(
         "dashboard.html",
-        page_title=display_name(current_folder["name"] if current_folder else current_event["name"]),
+        page_title=format_item_label(current_folder["name"] if current_folder else current_event["name"]),
         items=items,
         total_storage=0,
         total_files=len(items),

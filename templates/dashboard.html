@@ -47,7 +47,7 @@
       <button class="public-workspace-hero-close public-workspace-highlight-close" type="button" data-public-workspace-highlight-close aria-label="Close Latest Event highlight" title="Close Latest Event"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       <a class="public-workspace-featured-event{% if not latest_public_event.preview_image_url|default('') %} is-fallback{% endif %}" href="{{ url_for('public_event_workspace', event_id=latest_public_event.id, share_token=latest_public_event.share_token) }}">
         {% if latest_public_event.preview_image_url|default('') %}<img src="{{ latest_public_event.preview_image_url }}" alt="" class="public-workspace-event-preview">{% endif %}
-        <span class="public-workspace-featured-copy"><span class="public-workspace-kicker latest-event-label">Latest Event</span><strong>{{ display_name(latest_public_event.name) }}</strong><span>{{ latest_public_event.event_date.strftime('%B ') }}{{ latest_public_event.event_date.day }}, {{ latest_public_event.event_date.strftime('%Y') }} · {{ event_type_label(latest_public_event.event_type) }}</span></span>
+        <span class="public-workspace-featured-copy"><span class="public-workspace-kicker latest-event-label">Latest Event</span><strong>{{ format_item_label(latest_public_event.name) }}</strong><span>{{ latest_public_event.event_date.strftime('%B ') }}{{ latest_public_event.event_date.day }}, {{ latest_public_event.event_date.strftime('%Y') }} · {{ event_type_label(latest_public_event.event_type) }}</span></span>
         <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
       </a>
       </div>
@@ -56,7 +56,7 @@
         <button class="public-workspace-hero-close public-workspace-highlight-close" type="button" data-public-workspace-highlight-close aria-label="Close Upcoming Events highlight" title="Close Upcoming Events"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         <section class="public-workspace-hero-section" aria-labelledby="public-upcoming-events-title">
           <div class="public-upcoming-events-heading"><h2 id="public-upcoming-events-title">Upcoming Events</h2><span class="public-upcoming-events-count">{{ upcoming_public_event_count }}</span></div>
-          <div>{% for event in upcoming_public_events %}<a href="{{ url_for('public_event_workspace', event_id=event.id, share_token=event.share_token) }}"><img src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""><span>{{ display_name(event.name) }}</span><time datetime="{{ event.event_date.isoformat() }}">{{ event.event_date.strftime('%b ') }}{{ event.event_date.day }}</time></a>{% endfor %}</div>
+          <div>{% for event in upcoming_public_events %}<a href="{{ url_for('public_event_workspace', event_id=event.id, share_token=event.share_token) }}"><img src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""><span>{{ format_item_label(event.name) }}</span><time datetime="{{ event.event_date.isoformat() }}">{{ event.event_date.strftime('%b ') }}{{ event.event_date.day }}</time></a>{% endfor %}</div>
         </section>
       </div>
       {% endif %}
@@ -98,17 +98,17 @@
                 {% endif %}
                 {% if current_event %}
                 <span class="breadspan">/</span>
-                {% if breadcrumbs %}<a href="{{ url_for('public_event', share_token=share_context.token) if is_shared_workspace else url_for('dashboard', section='events', event=event_id) }}">{{ display_name(current_event.name) }}</a>{% else %}<span class="breadspan">{{ display_name(current_event.name) }}</span>{% endif %}
+                {% if breadcrumbs %}<a href="{{ url_for('public_event', share_token=share_context.token) if is_shared_workspace else url_for('dashboard', section='events', event=event_id) }}">{{ format_item_label(current_event.name) }}</a>{% else %}<span class="breadspan">{{ format_item_label(current_event.name) }}</span>{% endif %}
                 {% endif %}
                 {% for crumb in breadcrumbs %}
                 <span class="breadspan">/</span>
-                {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_event', share_token=share_context.token, folder=crumb.id) if is_shared_workspace else url_for('dashboard', section='events', event=event_id, folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
+                {% if loop.last %}<span class="breadspan" aria-current="page">{{ format_item_label(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_event', share_token=share_context.token, folder=crumb.id) if is_shared_workspace else url_for('dashboard', section='events', event=event_id, folder=crumb.id) }}">{{ format_item_label(crumb.name) }}</a>{% endif %}
                 {% endfor %}
               {% elif is_shared_workspace and share_context.kind == 'folder' %}
                 <a href="{{ url_for('public_files') if is_public_workspace else url_for('dashboard') }}">{{ 'Public Files' if is_public_workspace else 'Files' }}</a>
                 {% for crumb in breadcrumbs %}
                 <span class="breadspan">/</span>
-                {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_folder', share_token=share_context.token, folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
+                {% if loop.last %}<span class="breadspan" aria-current="page">{{ format_item_label(crumb.name) }}</span>{% else %}<a href="{{ url_for('public_folder', share_token=share_context.token, folder=crumb.id) }}">{{ format_item_label(crumb.name) }}</a>{% endif %}
                 {% endfor %}
               {% elif is_public_workspace %}
                 <span class="breadspan">Public Files</span>
@@ -116,16 +116,16 @@
                 {% if section in ['starred', 'trash', 'recent'] %}<a href="{{ url_for('dashboard') }}">Files</a><span class="breadspan">/</span><span class="breadspan">{{ section|capitalize }}</span>{% else %}<a href="{{ url_for('dashboard') }}">Files</a>{% endif %}
                 {% for crumb in breadcrumbs %}
                 <span class="breadspan">/</span>
-                {% if loop.last %}<span class="breadspan" aria-current="page">{{ display_name(crumb.name) }}</span>{% else %}<a href="{{ url_for('dashboard', folder=crumb.id) }}">{{ display_name(crumb.name) }}</a>{% endif %}
+                {% if loop.last %}<span class="breadspan" aria-current="page">{{ format_item_label(crumb.name) }}</span>{% else %}<a href="{{ url_for('dashboard', folder=crumb.id) }}">{{ format_item_label(crumb.name) }}</a>{% endif %}
                 {% endfor %}
               {% endif %}
             </nav>
             <div class="title-filter workspace-title-content">
               <h1{% if is_public_workspace and public_workspace_kind|default('files') == 'files' and not current_folder %} class="public-files-workspace-title"{% endif %}>
                 {% if current_folder %}
-                {{ display_name(current_folder.name) }}
+                {{ format_item_label(current_folder.name) }}
                 {% elif current_event %}
-                <span class="workspace-event-title"><img class="event-icon-inline" src="{{ url_for('static', filename='images/' ~ event_icon_file(current_event.event_type)) }}" alt=""><span>{{ display_name(current_event.name) }}</span></span>
+                <span class="workspace-event-title"><img class="event-icon-inline" src="{{ url_for('static', filename='images/' ~ event_icon_file(current_event.event_type)) }}" alt=""><span>{{ format_item_label(current_event.name) }}</span></span>
                 {% elif is_public_workspace %}
                 {{ 'Events' if public_workspace_kind|default('files') == 'events' else 'Public Files' }}
                 {% elif is_trash %}
@@ -301,7 +301,7 @@
                   {% else %}
                   <button class="move-destination-option" type="button" role="treeitem" aria-selected="false" data-destination-value="{{ destination.value }}" data-destination-kind="{{ destination.kind }}" data-event-id="{{ destination.event_id or '' }}" data-folder-id="{{ destination.folder_id or '' }}" data-ancestor-ids="{{ destination.ancestor_ids }}" style="--tree-depth: {{ destination.depth }}">
                     <img src="{{ url_for('static', filename='images/' ~ destination.icon_filename) }}" alt="">
-                    <span>{{ display_name(destination.name) }}</span>
+                    <span>{{ format_item_label(destination.name) }}</span>
                   </button>
                   {% endif %}
                 {% endfor %}
@@ -332,11 +332,11 @@
               {% if date_workspace_events %}
               <div class="date-workspace-events">
                 {% for event in date_workspace_events %}
-                <article class="date-workspace-event-card workspace-item" data-kind="event" data-item-id="{{ event.id }}" data-item-name="{{ event.name }}" data-item-display-name="{{ display_name(event.name) }}" data-item-type="{{ event_type_label(event.event_type) }}" data-item-size="{{ display_item_size('event', event.size) }}" data-item-location="Events" data-item-modified="{{ format_datetime(event.created_at) }}" data-item-date-label="Created" data-open-url="{{ url_for('dashboard', section='events', event=event.id) }}" data-download-url="{{ url_for('download_event', event_id=event.id) }}" data-copy-url="{{ url_for('public_event', share_token=event.share_token, _external=true) if event.share_token else '' }}" data-offline-url="{{ url_for('offline_manifest', kind='event', item_id=event.id) }}" data-item-icon="{{ event.event_type }}">
-                  <input class="item-select" type="checkbox" name="items" value="event:{{ event.id }}" aria-label="Select {{ display_name(event.name) }}" hidden>
+                <article class="date-workspace-event-card workspace-item" data-kind="event" data-item-id="{{ event.id }}" data-item-name="{{ event.name }}" data-item-display-name="{{ format_item_label(event.name) }}" data-item-type="{{ event_type_label(event.event_type) }}" data-item-size="{{ display_item_size('event', event.size) }}" data-item-location="Events" data-item-modified="{{ format_datetime(event.created_at) }}" data-item-date-label="Created" data-open-url="{{ url_for('dashboard', section='events', event=event.id) }}" data-download-url="{{ url_for('download_event', event_id=event.id) }}" data-copy-url="{{ url_for('public_event', share_token=event.share_token, _external=true) if event.share_token else '' }}" data-offline-url="{{ url_for('offline_manifest', kind='event', item_id=event.id) }}" data-item-icon="{{ event.event_type }}">
+                  <input class="item-select" type="checkbox" name="items" value="event:{{ event.id }}" aria-label="Select {{ format_item_label(event.name) }}" hidden>
                   <button class="toggle-star" type="button" data-starred="{{ 'false' if event.is_starred else 'true' }}" hidden></button>
                   <div>
-                    <h3><img class="event-icon-inline" src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""> {{ display_name(event.name) }}</h3>
+                    <h3><img class="event-icon-inline" src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""> {{ format_item_label(event.name) }}</h3>
                     <p>Created {{ format_datetime(event.created_at) }} · {{ display_item_size('event', event.size) }}</p>
                   </div>
                 </article>
@@ -505,11 +505,11 @@
                     {% set item_offline_url = url_for('offline_manifest', kind=item.kind, item_id=item.id) %}
                   {% endif %}
                   {% set item_copy_url = url_for('token_preview', share_token=item.share_token, _external=true) if item.kind == 'file' and item.share_token else url_for('public_event', share_token=current_event.share_token, folder=item.id, _external=true) if item.kind == 'folder' and current_event and current_event.share_token else url_for('public_folder', share_token=item.share_token, _external=true) if item.kind == 'folder' and item.share_token else url_for('public_event', share_token=item.share_token, _external=true) if item.kind == 'event' and item.share_token else '' %}
-                  <tr{% if item.kind == 'file' and not is_trash %} class="previewable-row" data-preview-url="{{ item_open_url }}"{% endif %} data-kind="{{ item.kind }}" data-item-id="{{ item.id }}" data-parent-id="{{ item.parent_id or '' }}" data-current-destination="{% if item.parent_id %}folder:{{ item.parent_id }}{% elif section == 'events' and event_id %}event:{{ event_id }}{% else %}library{% endif %}" data-item-name="{{ item.name }}" data-item-display-name="{{ display_name(item.name) }}" data-item-type="{{ 'Folder' if item.kind == 'folder' else clean_file_type(item) }}" data-item-size="{{ display_item_size(item.kind, item.size if item.kind in ['folder', 'event'] else item.file_size) }}" data-item-location="{{ item.location }}" data-item-accessed="{{ format_datetime(item.accessed_at) if item.kind in ['file', 'folder'] and item.accessed_at else '—' }}" data-sort-size="{{ item.size if item.kind in ['folder', 'event'] else item.file_size }}" data-item-modified="{{ format_datetime(item.date) }}" data-item-date-label="{{ 'Date deleted' if is_trash else 'Created' if item.kind == 'event' else 'Created or uploaded' }}" data-item-expiration="{{ trash_days_remaining(item.deleted_at) if is_trash and item.deleted_at else '' }}" data-open-url="{{ item_open_url }}" data-download-url="{{ item_download_url }}" data-copy-url="{{ item_copy_url }}"{% if item.kind == 'folder' and not is_trash %} data-folder-id="{{ item.id }}"{% endif %} data-file-type="{{ 'folder' if item.kind == 'folder' else file_type_key(item) }}" data-modified-date="{{ item.event_date.isoformat() if item.kind == 'event' and not is_trash else item.date.isoformat() if item.date else '' }}"{% if item.kind == 'event' %} data-item-icon="{{ item.event_type }}"{% endif %}>
-                    {% if not is_public_workspace %}<td class="selection-cell"><input class="item-select" type="checkbox" name="items" value="{{ item.kind }}:{{ item.id }}" aria-label="Select {{ display_name(item.name) }}"></td>{% endif %}
+                  <tr{% if item.kind == 'file' and not is_trash %} class="previewable-row" data-preview-url="{{ item_open_url }}"{% endif %} data-kind="{{ item.kind }}" data-item-id="{{ item.id }}" data-parent-id="{{ item.parent_id or '' }}" data-current-destination="{% if item.parent_id %}folder:{{ item.parent_id }}{% elif section == 'events' and event_id %}event:{{ event_id }}{% else %}library{% endif %}" data-item-name="{{ item.name }}" data-item-display-name="{{ format_item_label(item.name) }}" data-item-type="{{ 'Folder' if item.kind == 'folder' else clean_file_type(item) }}" data-item-size="{{ display_item_size(item.kind, item.size if item.kind in ['folder', 'event'] else item.file_size) }}" data-item-location="{{ item.location }}" data-item-accessed="{{ format_datetime(item.accessed_at) if item.kind in ['file', 'folder'] and item.accessed_at else '—' }}" data-sort-size="{{ item.size if item.kind in ['folder', 'event'] else item.file_size }}" data-item-modified="{{ format_datetime(item.date) }}" data-item-date-label="{{ 'Date deleted' if is_trash else 'Created' if item.kind == 'event' else 'Created or uploaded' }}" data-item-expiration="{{ trash_days_remaining(item.deleted_at) if is_trash and item.deleted_at else '' }}" data-open-url="{{ item_open_url }}" data-download-url="{{ item_download_url }}" data-copy-url="{{ item_copy_url }}"{% if item.kind == 'folder' and not is_trash %} data-folder-id="{{ item.id }}"{% endif %} data-file-type="{{ 'folder' if item.kind == 'folder' else file_type_key(item) }}" data-modified-date="{{ item.event_date.isoformat() if item.kind == 'event' and not is_trash else item.date.isoformat() if item.date else '' }}"{% if item.kind == 'event' %} data-item-icon="{{ item.event_type }}"{% endif %}>
+                    {% if not is_public_workspace %}<td class="selection-cell"><input class="item-select" type="checkbox" name="items" value="{{ item.kind }}:{{ item.id }}" aria-label="Select {{ format_item_label(item.name) }}"></td>{% endif %}
                     <td class="file-name">
                       {% if section == 'events' and not current_event and not is_event_date_workspace and item.kind == 'event' %}
-                      {% if not is_trash %}<a href="{{ item_open_url }}">{% else %}<span>{% endif %}<img class="event-icon-inline sml" src="{{ url_for('static', filename='images/' ~ event_icon_file(item.event_type)) }}" alt=""> {{ display_name(item.name) }}{% if not is_trash %}</a>{% else %}</span>{% endif %}
+                      {% if not is_trash %}<a href="{{ item_open_url }}">{% else %}<span>{% endif %}<img class="event-icon-inline sml" src="{{ url_for('static', filename='images/' ~ event_icon_file(item.event_type)) }}" alt=""> {{ format_item_label(item.name) }}{% if not is_trash %}</a>{% else %}</span>{% endif %}
                       {% elif item.kind == 'folder' %}
                       {% if not is_trash or is_global_search %}
                       <a href="{{ item_open_url }}">
@@ -517,7 +517,7 @@
                       <span>
                       {% endif %}
                         <img class="file-type-icon" src="{{ url_for('static', filename='images/Folder.png') }}" alt="">
-                        {{ display_name(item.name) }}
+                        {{ format_item_label(item.name) }}
                       {% if not is_trash or is_global_search %}
                       </a>
                       {% else %}
@@ -527,10 +527,10 @@
                       <a href="{{ item_open_url or '#' }}">
                         <img class="file-type-icon" src="{{ url_for('static', filename='images/' ~ file_type_icon(item)) }}" alt="">
                         {% if item.kind == 'file' and '.' in item.name and not item.name.startswith('.') %}
-                        <span class="file-name-stem">{{ display_name(item.name.rsplit('.', 1)[0]) }}</span>
-                        <span class="file-name-extension">.{{ display_name(item.name.rsplit('.', 1)[1]) }}</span>
+                        <span class="file-name-stem">{{ format_item_label(item.name.rsplit('.', 1)[0]) }}</span>
+                        <span class="file-name-extension">.{{ format_item_label(item.name.rsplit('.', 1)[1]) }}</span>
                         {% else %}
-                        {{ display_name(item.name) }}
+                        {{ format_item_label(item.name) }}
                         {% endif %}
                       </a>
                       {% endif %}
@@ -550,8 +550,8 @@
                     {% if is_public_workspace %}
                     <td class="actions">
                       <div class="actions2">
-                        <a class="row-action download-action public-download-action" href="{{ item_download_url }}" aria-label="Download {{ display_name(item.name) }}" title="Download"><i class="bi bi-download" aria-hidden="true"></i></a>
-                        <button class="row-action more-actions-button" type="button" data-item-actions-target="item-actions-modal" data-item-id="{{ item.id }}" data-item-kind="{{ item.kind }}" data-offline-url="{{ item_offline_url }}" aria-label="More actions for {{ display_name(item.name) }}" title="More actions" aria-haspopup="menu" aria-controls="item-actions-modal" aria-expanded="false"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button>
+                        <a class="row-action download-action public-download-action" href="{{ item_download_url }}" aria-label="Download {{ format_item_label(item.name) }}" title="Download"><i class="bi bi-download" aria-hidden="true"></i></a>
+                        <button class="row-action more-actions-button" type="button" data-item-actions-target="item-actions-modal" data-item-id="{{ item.id }}" data-item-kind="{{ item.kind }}" data-offline-url="{{ item_offline_url }}" aria-label="More actions for {{ format_item_label(item.name) }}" title="More actions" aria-haspopup="menu" aria-controls="item-actions-modal" aria-expanded="false"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button>
                       </div>
                     </td>
                     {% else %}<td class="actions">
@@ -561,7 +561,7 @@
                         {% if not is_shared_workspace %}
                         <button class="row-action star-action toggle-star {% if item.is_starred %}is-starred{% endif %}" type="button" data-item="{{ item.kind }}:{{ item.id }}" data-starred="{{ 'false' if item.is_starred else 'true' }}" aria-label="{{ 'Remove from Starred' if item.is_starred else 'Add to Starred' }}" title="{{ 'Unstar' if item.is_starred else 'Star' }}"><i class="bi bi-star{{ '-fill' if item.is_starred else '' }}" aria-hidden="true"></i></button>
                         {% endif %}
-                        <button class="row-action more-actions-button" type="button" data-item-actions-target="item-actions-modal" data-item-id="{{ item.id }}" data-item-kind="{{ item.kind }}" data-offline-url="{{ item_offline_url }}" aria-label="More actions for {{ display_name(item.name) }}" title="More actions" aria-haspopup="menu" aria-controls="item-actions-modal" aria-expanded="false"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button>
+                        <button class="row-action more-actions-button" type="button" data-item-actions-target="item-actions-modal" data-item-id="{{ item.id }}" data-item-kind="{{ item.kind }}" data-offline-url="{{ item_offline_url }}" aria-label="More actions for {{ format_item_label(item.name) }}" title="More actions" aria-haspopup="menu" aria-controls="item-actions-modal" aria-expanded="false"><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button>
                         {% else %}
                         <button class="row-action larger" type="button" data-row-action="restore" aria-label="Restore" title="Restore"><i class="bi bi-arrow-counterclockwise"></i></button>
                         <button class="row-action larger danger-action" type="button" data-row-action="permanent-delete" aria-label="Delete Permanently" title="Delete Permanently"><i class="bi bi-trash"></i></button>

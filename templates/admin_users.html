@@ -15,10 +15,10 @@
     <button class="button primary" type="submit">Create user</button>
   </form>
   <h2>Accounts</h2>
-  <div style="overflow-x:auto"><table><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Storage</th><th>Files</th><th>Events</th><th>Actions</th></tr></thead><tbody>
+  <div class="admin-users-table-wrap"><table class="admin-users-table"><thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Account Status</th><th>Storage Usage</th><th>File Count</th><th>Event Count</th><th>Actions</th></tr></thead><tbody>
   {% for user in users %}<tr>
     <td>{{ user.username }}</td><td>{{ user.email or '—' }}</td><td>{{ user.role or 'Public Viewer' }}</td><td>{{ 'Active' if user.is_active else 'Deactivated' }}</td>
-    <td>{{ readable_size(user.storage_used or 0) }}</td><td>{{ user.file_count }}</td><td>{{ user.event_count }}</td><td>
+    <td>{{ readable_size(user.storage_used or 0) }}</td><td>{{ user.file_count }}</td><td>{{ user.event_count }}</td><td class="admin-user-actions">
       <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Manage Files</button></form>
       <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="section" value="events"><button type="submit" name="open_events" value="1">Manage Events</button></form>
       {% if user.id != session.get('principal_id', session.get('user_id')) %}
