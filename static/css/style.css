@@ -5586,7 +5586,7 @@ hr {
   display: table;
   width: 100%;
   height: auto;
-  min-width: 1100px;
+  min-width: 0;
   table-layout: fixed;
   border-collapse: collapse;
 }
@@ -5623,13 +5623,13 @@ hr {
   z-index: 2;
   background: var(--surface, #fff);
 }
-.admin-users-table th:nth-child(1), .admin-users-table td:nth-child(1) { width: 16%; }
-.admin-users-table th:nth-child(2), .admin-users-table td:nth-child(2) { width: 21%; }
-.admin-users-table th:nth-child(3), .admin-users-table td:nth-child(3) { width: 12%; }
-.admin-users-table th:nth-child(4), .admin-users-table td:nth-child(4) { width: 14%; }
-.admin-users-table th:nth-child(5), .admin-users-table td:nth-child(5) { width: 17%; }
-.admin-users-table th:nth-child(6), .admin-users-table td:nth-child(6) { width: 20%; }
-.admin-user-actions { min-width: 250px; }
+.admin-users-table th:nth-child(1), .admin-users-table td:nth-child(1) { width: 18%; }
+.admin-users-table th:nth-child(2), .admin-users-table td:nth-child(2) { width: 25%; }
+.admin-users-table th:nth-child(3), .admin-users-table td:nth-child(3) { width: 13%; }
+.admin-users-table th:nth-child(4), .admin-users-table td:nth-child(4) { width: 13%; }
+.admin-users-table th:nth-child(5), .admin-users-table td:nth-child(5) { width: 13%; }
+.admin-users-table th:nth-child(6), .admin-users-table td:nth-child(6) { width: 18%; }
+.admin-user-actions { min-width: 0; white-space: nowrap; }
 .admin-user-actions form { margin: 0; }
 .admin-user-actions button,
 .admin-user-actions select { max-width: 100%; }
