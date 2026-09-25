@@ -2060,9 +2060,45 @@ def logout():
     return redirect(url_for("login"))
 
 
+def public_settings_or_login_required(view):
+    authenticated_view = login_required(view)
+
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if "user_id" in session:
+            return authenticated_view(*args, **kwargs)
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
 @app.get("/settings")
-@login_required
+@public_settings_or_login_required
 def settings():
+    if "user_id" not in session:
+        return render_template(
+            "settings.html",
+            account=None,
+            preferences={"theme_preference": session.get("theme_preference") or "light"},
+            storage_used=0,
+            total_storage=0,
+            available_storage=None,
+            file_count=0,
+            folder_count=0,
+            sidebar_events=public_sidebar_events(),
+            section="settings",
+            is_public_workspace=True,
+            is_shared_workspace=False,
+            is_event_date_workspace=False,
+            event_id=None,
+            public_workspace_kind="files",
+            max_file_size_mb=current_upload_limit_mb(),
+            offline_cache_scope=current_offline_cache_scope(),
+            theme_preference=session.get("theme_preference") or "light",
+            admin_users=None,
+            is_public_settings=True,
+        )
+
     user_id = session["user_id"]
     try:
         account = query_one(
@@ -2127,6 +2163,7 @@ def settings():
         offline_cache_scope=current_offline_cache_scope(),
         theme_preference=preferences.get("theme_preference") or "light",
         admin_users=admin_users,
+        is_public_settings=False,
     )
 
 

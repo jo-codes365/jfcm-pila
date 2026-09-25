@@ -1,3 +1,30 @@
+if (document.body && document.body.dataset.publicView === "true") {
+  var publicThemePreferenceKey = "jfcm-public-theme-preference";
+  var validPublicThemes = ["light", "dark", "system"];
+  var publicThemeInputs = Array.from(document.querySelectorAll(".public-theme-options input[name='theme']"));
+  var savedPublicTheme = null;
+  try { savedPublicTheme = window.localStorage.getItem(publicThemePreferenceKey); } catch (_error) {}
+  var publicTheme = validPublicThemes.indexOf(savedPublicTheme) !== -1
+    ? savedPublicTheme
+    : (validPublicThemes.indexOf(document.body.dataset.theme) !== -1 ? document.body.dataset.theme : "light");
+
+  function applyPublicTheme(theme, persist) {
+    if (validPublicThemes.indexOf(theme) === -1) return;
+    document.body.dataset.theme = theme;
+    publicThemeInputs.forEach(function (input) { input.checked = input.value === theme; });
+    if (persist) {
+      try { window.localStorage.setItem(publicThemePreferenceKey, theme); } catch (_error) {}
+    }
+  }
+
+  applyPublicTheme(publicTheme, false);
+  publicThemeInputs.forEach(function (input) {
+    input.addEventListener("change", function () {
+      if (input.checked) applyPublicTheme(input.value, true);
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   var reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   var temporaryHideTimers = new WeakMap();

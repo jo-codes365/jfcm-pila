@@ -18,7 +18,7 @@
     <div class="workspace-body">
       <div class="workspace-content settings-workspace-content">
         <div class="settings-page">
-          <div class="settings-intro"><h1>Settings</h1><p>Manage your account, appearance, saved offline files, and storage details.</p></div>
+          <div class="settings-intro"><h1>Settings</h1><p>{% if is_public_settings %}Appearance, upload information, and offline files.{% else %}Manage your account, appearance, saved offline files, and storage details.{% endif %}</p></div>
           <p id="settings-search-empty" class="settings-search-empty" role="status" hidden>No matching settings</p>
           {% if admin_users is not none %}
           <section class="settings-section" aria-labelledby="user-management-title">
@@ -103,7 +103,7 @@
           </div>
           {% endif %}
 
-          {% if admin_users is none %}
+          {% if not is_public_settings and admin_users is none %}
           <section class="settings-section" aria-labelledby="account-settings-title">
             <div class="settings-section-heading"><i class="bi bi-person"></i><div><h2 id="account-settings-title">Account</h2><p>Changes apply only to your signed-in account.</p></div></div>
             <form class="settings-form account-details-form" method="post" action="{{ url_for('update_settings_account') }}">
@@ -124,25 +124,33 @@
           {% endif %}
 
           <section class="settings-section" aria-labelledby="appearance-settings-title">
-            <div class="settings-section-heading"><i class="bi bi-circle-half"></i><div><h2 id="appearance-settings-title">Appearance</h2><p>Choose how JFCM Library appears on this account.</p></div></div>
+            <div class="settings-section-heading"><i class="bi bi-circle-half"></i><div><h2 id="appearance-settings-title">Appearance</h2><p>{% if is_public_settings %}Choose how JFCM Library appears in this browser.{% else %}Choose how JFCM Library appears on this account.{% endif %}</p></div></div>
+            {% if is_public_settings %}
+            <div class="theme-options public-theme-options" aria-label="Appearance options">
+              {% for theme, label, icon in [('light', 'Light', 'bi-sun'), ('dark', 'Dark', 'bi-moon'), ('system', 'System', 'bi-laptop')] %}
+              <label><input type="radio" name="theme" value="{{ theme }}" {% if theme_preference == theme %}checked{% endif %}><span><i class="bi {{ icon }}"></i>{{ label }}</span></label>
+              {% endfor %}
+            </div>
+            {% else %}
             <form class="theme-options" method="post" action="{{ url_for('update_settings_theme') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               {% for theme, label, icon in [('light', 'Light', 'bi-sun'), ('dark', 'Dark', 'bi-moon'), ('system', 'System', 'bi-laptop')] %}
               <label><input type="radio" name="theme" value="{{ theme }}" {% if theme_preference == theme %}checked{% endif %}><span><i class="bi {{ icon }}"></i>{{ label }}</span></label>
               {% endfor %}<button class="button secondary" type="submit">Save appearance</button>
             </form>
+            {% endif %}
           </section>
 
           <section class="settings-section" aria-labelledby="uploads-settings-title"><div class="settings-section-heading"><i class="bi bi-cloud-arrow-up"></i><div><h2 id="uploads-settings-title">Uploads</h2><p>Each file is limited to {{ max_file_size_mb }} MB. This limit is enforced by the server.</p></div></div></section>
           <section id="offline-settings" class="settings-section" aria-labelledby="offline-settings-title">
-            <div class="settings-section-heading"><i class="bi bi-cloud-check"></i><div><h2 id="offline-settings-title">Offline</h2><p>Saved files are kept only in this browser for the current signed-in session.</p></div></div>
+            <div class="settings-section-heading"><i class="bi bi-cloud-check"></i><div><h2 id="offline-settings-title">Offline</h2><p>{% if is_public_settings %}Public files saved offline in this browser.{% else %}Saved files are kept only in this browser for the current signed-in session.{% endif %}</p></div></div>
             <div class="offline-summary"><strong id="offline-storage-usage">Checking storage…</strong><span id="offline-item-count">Checking saved offline files…</span></div><ul id="offline-item-list" class="offline-item-list" aria-live="polite"></ul>
             <div class="settings-form-actions"><button id="clear-offline-files" class="button danger" type="button" disabled><i class="bi bi-trash3"></i> Clear saved offline files</button></div><p id="offline-settings-status" class="field-help" aria-live="polite"></p>
           </section>
-          <section class="settings-section" aria-labelledby="storage-settings-title">
+          {% if not is_public_settings %}<section class="settings-section" aria-labelledby="storage-settings-title">
             <div class="settings-section-heading"><i class="bi bi-device-hdd"></i><div><h2 id="storage-settings-title">Storage</h2><p>Your active library content. Trash is not included.</p></div></div>
             <dl class="storage-details"><div><dt>Total storage used</dt><dd>{{ readable_size(storage_used) }}</dd></div><div><dt>Available storage</dt><dd>{% if available_storage is not none %}{{ readable_size(available_storage) }}{% else %}Unavailable{% endif %}</dd></div><div><dt>File count</dt><dd>{{ file_count }}</dd></div><div><dt>Folder count</dt><dd>{{ folder_count }}</dd></div></dl>
-          </section>
+          </section>{% endif %}
         </div>
       </div>
     </div>

@@ -5623,13 +5623,14 @@ hr {
   z-index: 2;
   background: var(--surface, #fff);
 }
-.admin-users-table th:nth-child(1), .admin-users-table td:nth-child(1) { width: 18%; }
-.admin-users-table th:nth-child(2), .admin-users-table td:nth-child(2) { width: 25%; }
+.admin-users-table th:nth-child(1), .admin-users-table td:nth-child(1) { width: 15%; }
+.admin-users-table th:nth-child(2), .admin-users-table td:nth-child(2) { width: 28%; }
 .admin-users-table th:nth-child(3), .admin-users-table td:nth-child(3) { width: 13%; }
 .admin-users-table th:nth-child(4), .admin-users-table td:nth-child(4) { width: 13%; }
 .admin-users-table th:nth-child(5), .admin-users-table td:nth-child(5) { width: 13%; }
 .admin-users-table th:nth-child(6), .admin-users-table td:nth-child(6) { width: 18%; }
 .admin-user-actions { min-width: 0; white-space: nowrap; }
+.admin-users-table i { font-size: 1.25rem; }
 .admin-user-actions form { margin: 0; }
 .admin-user-actions button,
 .admin-user-actions select { max-width: 100%; }
