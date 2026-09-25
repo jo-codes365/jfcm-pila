@@ -5792,7 +5792,9 @@ hr {
 .admin-create-user-modal .btn-close::before { content: "×"; font-size: 1.6rem; line-height: 1; }
 .admin-create-user-modal .btn-close:hover { color: #334155; background: #f1f5f9; opacity: 1; }
 .admin-create-user-modal .stack-form { margin-top: 16px; }
-.admin-create-user-modal .stack-form label { text-align: left; }
+#create-user-modal .create-user-field { display: grid; gap: 0; }
+#create-user-modal .create-user-field + .create-user-field { margin-top: 12px; }
+#create-user-modal .create-user-field label { margin: 0; }
 .admin-create-user-modal .deactivation-confirm-label > span { display: flex; align-items: center; gap: 8px; }
 .admin-create-user-modal .deactivation-confirm-label input[type="checkbox"] {
   width: 16px;

@@ -66,11 +66,11 @@
               <div id="create-user-messages" class="admin-create-user-messages" role="status" aria-live="polite"></div>
               <form id="admin-create-user-form" method="post" action="{{ url_for('manage_users') }}" class="stack-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="return_to_settings" value="1">
-                <label for="create-user-email">Email</label><input id="create-user-email" name="email" type="email" maxlength="255">
-                <label for="create-user-username">Username</label><input id="create-user-username" name="username" required minlength="3" maxlength="20" pattern="[a-z0-9_]{3,20}">
-                <label for="create-user-password">Password</label><input id="create-user-password" name="password" required minlength="6" type="password">
-                <label for="create-user-confirm-password">Confirm Password</label><input id="create-user-confirm-password" name="confirm_password" required minlength="6" type="password">
-                <label for="create-user-role">Role</label><select id="create-user-role" name="role"><option value="admin">Admin</option><option value="">Public Viewer</option></select>
+                <div class="create-user-field"><label for="create-user-email">Email</label><input id="create-user-email" name="email" type="email" maxlength="255"></div>
+                <div class="create-user-field"><label for="create-user-username">Username</label><input id="create-user-username" name="username" required minlength="3" maxlength="20" pattern="[a-z0-9_]{3,20}"></div>
+                <div class="create-user-field"><label for="create-user-password">Password</label><input id="create-user-password" name="password" required minlength="6" type="password"></div>
+                <div class="create-user-field"><label for="create-user-confirm-password">Confirm Password</label><input id="create-user-confirm-password" name="confirm_password" required minlength="6" type="password"></div>
+                <div class="create-user-field"><label for="create-user-role">Role</label><select id="create-user-role" name="role"><option value="admin">Admin</option><option value="">Public Viewer</option></select></div>
                 <div class="modal-actions"><button class="button secondary" type="button" id="cancel-create-user">Close</button><button class="button primary" type="submit">Create User</button></div>
               </form>
             </section>
