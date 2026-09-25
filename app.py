@@ -2258,6 +2258,52 @@ def audit_trail():
     )
 
 
+@app.get("/admin/dashboard")
+@super_admin_required
+def super_admin_dashboard():
+    try:
+        ensure_audit_log_table()
+        recent_activity = query_all(
+            "SELECT created_at, username, action, item FROM audit_logs "
+            "ORDER BY created_at DESC, id DESC LIMIT 5"
+        )
+        upcoming_events = query_all(
+            "SELECT id, name, event_date FROM events "
+            "WHERE is_deleted = FALSE AND event_date >= CURDATE() "
+            "ORDER BY event_date ASC, id ASC LIMIT 5"
+        )
+        user_overview = query_one(
+            "SELECT COUNT(*) AS total_users, "
+            "COALESCE(SUM(CASE WHEN role IN ('admin', 'super-admin') THEN 1 ELSE 0 END), 0) AS admin_count, "
+            "COALESCE(SUM(CASE WHEN role IS NULL THEN 1 ELSE 0 END), 0) AS public_viewer_count, "
+            "COALESCE(SUM(CASE WHEN is_active = FALSE THEN 1 ELSE 0 END), 0) AS inactive_count "
+            "FROM users",
+            (),
+        )
+        sidebar_events = query_all(
+            "SELECT id, name, event_date, event_type FROM events "
+            "WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name",
+            (session.get("user_id", session.get("principal_id")),),
+        )
+        storage = query_one("SELECT COALESCE(SUM(file_size), 0) AS used FROM files WHERE is_deleted = FALSE", ())
+    except MySQLError:
+        app.logger.exception("Super Admin dashboard database error")
+        abort(500)
+    return render_template(
+        "super_admin_dashboard.html",
+        recent_activity=recent_activity,
+        upcoming_events=upcoming_events,
+        user_overview=user_overview or {},
+        sidebar_events=sidebar_events,
+        section="super-admin-dashboard",
+        is_public_workspace=False,
+        is_shared_workspace=False,
+        is_event_date_workspace=False,
+        event_id=None,
+        total_storage=storage["used"] if storage else 0,
+    )
+
+
 @app.post("/settings/account")
 @login_required
 def update_settings_account():

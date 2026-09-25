@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Super Admin Dashboard | JFCM Library{% endblock %}
+{% block content %}
+<div class="storage-shell">
+  {% include "_workspace_sidebar.html" %}
+  <button id="sidebar-backdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation" tabindex="-1" hidden></button>
+  <main class="workspace">
+    <header class="workspace-header">
+      <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i></button>
+    </header>
+    <div class="workspace-body">
+      <div class="workspace-content settings-workspace-content">
+        <div class="settings-page super-admin-dashboard">
+          <div class="settings-intro"><h1>Dashboard</h1><p>A quick overview of recent activity, upcoming Events, and users.</p></div>
+          <div class="super-admin-dashboard-grid">
+            <section class="settings-section dashboard-panel" aria-labelledby="dashboard-activity-title">
+              <div class="settings-section-heading dashboard-panel-heading"><i class="bi bi-activity"></i><div><h2 id="dashboard-activity-title">Recent Activity</h2><p>Latest actions by users.</p></div><a class="button secondary" href="{{ url_for('audit_trail') }}">View All</a></div>
+              <ul class="dashboard-activity-list">
+                {% for activity in recent_activity %}
+                <li><div><strong>{{ activity.action }}</strong>{% if activity.item %}<span>{{ format_item_label(activity.item) }}</span>{% endif %}</div><div class="dashboard-activity-meta"><span>{{ activity.username }}</span><time>{{ format_datetime(activity.created_at) }}</time></div></li>
+                {% else %}
+                <li class="dashboard-empty">No recent activity.</li>
+                {% endfor %}
+              </ul>
+            </section>
+            <section class="settings-section dashboard-panel" aria-labelledby="dashboard-events-title">
+              <div class="settings-section-heading dashboard-panel-heading"><i class="bi bi-calendar-date"></i><div><h2 id="dashboard-events-title">Events Overview</h2><p>Upcoming Events across all users.</p></div></div>
+              <ul class="dashboard-event-list">
+                {% for event in upcoming_events %}
+                <li><a href="{{ url_for('dashboard', section='events', event=event.id) }}"><span>{{ format_item_label(event.name) }}</span><time datetime="{{ event.event_date.isoformat() }}">{{ event.event_date.strftime('%b ') }}{{ event.event_date.day }}, {{ event.event_date.strftime('%Y') }}</time></a></li>
+                {% else %}
+                <li class="dashboard-empty">No upcoming Events.</li>
+                {% endfor %}
+              </ul>
+            </section>
+            <section class="settings-section dashboard-panel dashboard-users-panel" aria-labelledby="dashboard-users-title">
+              <div class="settings-section-heading dashboard-panel-heading"><i class="bi bi-people"></i><div><h2 id="dashboard-users-title">User Overview</h2><p>Accounts across JFCM Library.</p></div><a class="button secondary" href="{{ url_for('settings') }}#user-management-title">Manage Users</a></div>
+              <dl class="dashboard-user-stats">
+                <div><dt>Total users</dt><dd>{{ user_overview.total_users or 0 }}</dd></div>
+                <div><dt>Admins</dt><dd>{{ user_overview.admin_count or 0 }}</dd></div>
+                <div><dt>Public viewers</dt><dd>{{ user_overview.public_viewer_count or 0 }}</dd></div>
+                <div><dt>Inactive users</dt><dd>{{ user_overview.inactive_count or 0 }}</dd></div>
+              </dl>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -50,6 +50,7 @@
     </div>
     {% endif %}
     <nav class="sidebar-nav">
+      {% if not is_shared_workspace and g.is_super_admin|default(false) %}<a class="sidebar-link {% if section == 'super-admin-dashboard' %}active{% endif %}" href="{{ url_for('super_admin_dashboard') }}"><i class="bi bi-speedometer2"></i>Dashboard</a><hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">{% endif %}
       <a class="sidebar-link {% if section == 'files' %}active{% endif %}" href="{{ url_for('public_folder', share_token=share_context.token) if is_shared_workspace and share_context.kind == 'folder' else url_for('public_event', share_token=share_context.token) if is_shared_workspace and share_context.kind == 'event' else url_for('dashboard') }}"><i class="bi bi-file-earmark-arrow-up"></i>{{ 'Public folder' if is_shared_workspace and share_context.kind == 'folder' else 'Public Event' if is_shared_workspace and share_context.kind == 'event' else 'Files' }}</a>
       {% if not is_shared_workspace %}
       <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
