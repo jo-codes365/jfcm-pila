@@ -27,6 +27,43 @@ if (document.body && document.body.dataset.publicView === "true") {
 
 document.addEventListener("DOMContentLoaded", function () {
   var reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var authenticatedThemeForm = document.querySelector(".authenticated-theme-options");
+  if (authenticatedThemeForm) {
+    var appearanceStatus = document.getElementById("appearance-save-status");
+    var savedTheme = document.body.dataset.theme || "light";
+    var appearanceSaveQueue = Promise.resolve();
+
+    authenticatedThemeForm.addEventListener("change", function (event) {
+      if (!event.target.matches('input[name="theme"]')) return;
+      var selectedTheme = event.target.value;
+      document.body.dataset.theme = selectedTheme;
+      if (appearanceStatus) appearanceStatus.textContent = "";
+      appearanceSaveQueue = appearanceSaveQueue.then(function () {
+        var formData = new FormData(authenticatedThemeForm);
+        formData.set("theme", selectedTheme);
+        return fetch(authenticatedThemeForm.action, {
+          method: "POST",
+          body: formData,
+          credentials: "same-origin",
+          headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" }
+        }).then(function (response) {
+          return response.json().then(function (result) {
+            if (!response.ok || !result.ok) throw new Error("Appearance preference could not be saved.");
+            savedTheme = selectedTheme;
+          });
+        });
+      }).catch(function () {
+        var currentSelection = authenticatedThemeForm.querySelector('input[name="theme"]:checked');
+        if (currentSelection && currentSelection.value === selectedTheme) {
+          document.body.dataset.theme = savedTheme;
+          currentSelection.checked = false;
+          var savedInput = authenticatedThemeForm.querySelector('input[name="theme"][value="' + savedTheme + '"]');
+          if (savedInput) savedInput.checked = true;
+          if (appearanceStatus) appearanceStatus.textContent = "Unable to save appearance preference. Please try again.";
+        }
+      });
+    });
+  }
   var temporaryHideTimers = new WeakMap();
   function temporaryIsOpen(element) {
     return Boolean(element && !element.hidden && !element.classList.contains("is-closing"));

@@ -2553,15 +2553,21 @@ def update_settings_theme():
     theme_preference = request.form.get("theme", "system").strip().lower()
     if theme_preference not in {"light", "dark", "system"}:
         abort(400)
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     try:
         save_user_preferences(session["user_id"], theme_preference=theme_preference)
         session["theme_preference"] = theme_preference
         record_audit_action(session["user_id"], "Settings changed", "Appearance")
-        flash("Appearance preference saved.", "success")
     except MySQLError:
         get_db().rollback()
         app.logger.exception("Theme preference update failed")
+        if wants_json:
+            return jsonify({"ok": False, "theme_preference": session.get("theme_preference", "light")}), 500
         flash("Unable to save appearance preference. Please try again.", "error")
+    else:
+        if wants_json:
+            return jsonify({"ok": True, "theme_preference": theme_preference})
+        flash("Appearance preference saved.", "success")
     return redirect(url_for("settings"))
 
 
