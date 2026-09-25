@@ -24,13 +24,17 @@
               </ul>
             </section>
             <section class="settings-section dashboard-panel" aria-labelledby="dashboard-events-title">
-              <div class="settings-section-heading dashboard-panel-heading"><i class="bi bi-calendar-date"></i><div><h2 id="dashboard-events-title">Events Overview</h2><p>Upcoming Events across all users.</p></div></div>
+              <div class="settings-section-heading dashboard-panel-heading"><i class="bi bi-calendar-date"></i><div><h2 id="dashboard-events-title">Events Overview</h2><p>Upcoming and latest Events across all users.</p></div></div>
               <ul class="dashboard-event-list">
+                {% if upcoming_events %}<li class="dashboard-event-group-label">Upcoming Events</li>{% endif %}
                 {% for event in upcoming_events %}
                 <li><a href="{{ url_for('dashboard', section='events', event=event.id) }}"><span>{{ format_item_label(event.name) }}</span><time datetime="{{ event.event_date.isoformat() }}">{{ event.event_date.strftime('%b ') }}{{ event.event_date.day }}, {{ event.event_date.strftime('%Y') }}</time></a></li>
-                {% else %}
-                <li class="dashboard-empty">No upcoming Events.</li>
                 {% endfor %}
+                {% if latest_events %}<li class="dashboard-event-group-label">Latest Events</li>{% endif %}
+                {% for event in latest_events %}
+                <li><a href="{{ url_for('dashboard', section='events', event=event.id) }}"><span>{{ format_item_label(event.name) }}</span><time datetime="{{ event.event_date.isoformat() }}">{{ event.event_date.strftime('%b ') }}{{ event.event_date.day }}, {{ event.event_date.strftime('%Y') }}</time></a></li>
+                {% endfor %}
+                {% if not upcoming_events and not latest_events %}<li class="dashboard-empty">No Events.</li>{% endif %}
               </ul>
             </section>
             <section class="settings-section dashboard-panel dashboard-users-panel" aria-labelledby="dashboard-users-title">
@@ -38,7 +42,6 @@
               <dl class="dashboard-user-stats">
                 <div><dt>Total users</dt><dd>{{ user_overview.total_users or 0 }}</dd></div>
                 <div><dt>Admins</dt><dd>{{ user_overview.admin_count or 0 }}</dd></div>
-                <div><dt>Public viewers</dt><dd>{{ user_overview.public_viewer_count or 0 }}</dd></div>
                 <div><dt>Inactive users</dt><dd>{{ user_overview.inactive_count or 0 }}</dd></div>
               </dl>
             </section>

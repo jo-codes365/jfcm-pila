@@ -440,6 +440,61 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  document.querySelectorAll("[data-event-image-urls]").forEach(function (image) {
+    var imageUrls;
+    try {
+      imageUrls = JSON.parse(image.dataset.eventImageUrls || "[]").filter(function (url) { return typeof url === "string" && url; });
+    } catch (_error) {
+      imageUrls = [];
+    }
+    var highlight = image.closest("[data-public-workspace-highlight]");
+    var container = image.closest(".public-workspace-featured-event");
+    var timer = null;
+    var currentIndex = imageUrls.findIndex(function (url) { return new URL(url, document.baseURI).href === image.src; });
+
+    function updateCropMotion() {
+      if (!container || !image.naturalWidth || !image.naturalHeight) return;
+      var imageRatio = image.naturalWidth / image.naturalHeight;
+      var containerRatio = container.clientWidth / container.clientHeight;
+      var needsCrop = Math.abs(imageRatio - containerRatio) > 0.01;
+      image.classList.toggle("has-crop-motion", needsCrop && !reducedMotionQuery.matches);
+    }
+
+    function stopRotation() {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+    }
+
+    function scheduleRotation() {
+      stopRotation();
+      if (imageUrls.length < 2 || reducedMotionQuery.matches || !highlight || highlight.hidden || highlight.classList.contains("is-closing")) return;
+      timer = window.setTimeout(changeImage, 5000);
+    }
+
+    function changeImage() {
+      timer = null;
+      if (reducedMotionQuery.matches || !highlight || highlight.hidden || highlight.classList.contains("is-closing")) return;
+      var otherIndexes = imageUrls.map(function (_url, index) { return index; }).filter(function (index) { return index !== currentIndex; });
+      if (!otherIndexes.length) return;
+      currentIndex = otherIndexes[Math.floor(Math.random() * otherIndexes.length)];
+      image.src = imageUrls[currentIndex];
+      scheduleRotation();
+    }
+
+    image.addEventListener("load", updateCropMotion);
+    updateCropMotion();
+    if (window.ResizeObserver && container) new ResizeObserver(updateCropMotion).observe(container);
+    scheduleRotation();
+
+    var onMotionPreferenceChange = function () {
+      updateCropMotion();
+      if (reducedMotionQuery.matches) stopRotation();
+      else scheduleRotation();
+    };
+    if (reducedMotionQuery.addEventListener) reducedMotionQuery.addEventListener("change", onMotionPreferenceChange);
+    else if (reducedMotionQuery.addListener) reducedMotionQuery.addListener(onMotionPreferenceChange);
+  });
+
   function formatOfflineBytes(bytes) {
     var size = Number(bytes) || 0;
     var units = ["B", "KB", "MB", "GB"];

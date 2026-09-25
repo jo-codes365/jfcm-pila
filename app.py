@@ -2270,13 +2270,19 @@ def super_admin_dashboard():
         upcoming_events = query_all(
             "SELECT id, name, event_date FROM events "
             "WHERE is_deleted = FALSE AND event_date >= CURDATE() "
-            "ORDER BY event_date ASC, id ASC LIMIT 5"
+            "ORDER BY event_date ASC, id ASC LIMIT 2"
+        )
+        latest_event_limit = max(0, 5 - len(upcoming_events))
+        latest_events = query_all(
+            "SELECT id, name, event_date FROM events "
+            "WHERE is_deleted = FALSE AND event_date < CURDATE() "
+            "ORDER BY event_date DESC, id DESC LIMIT %s",
+            (latest_event_limit,),
         )
         user_overview = query_one(
-            "SELECT COUNT(*) AS total_users, "
+            "SELECT COUNT(CASE WHEN role IS NOT NULL THEN 1 END) AS total_users, "
             "COALESCE(SUM(CASE WHEN role IN ('admin', 'super-admin') THEN 1 ELSE 0 END), 0) AS admin_count, "
-            "COALESCE(SUM(CASE WHEN role IS NULL THEN 1 ELSE 0 END), 0) AS public_viewer_count, "
-            "COALESCE(SUM(CASE WHEN is_active = FALSE THEN 1 ELSE 0 END), 0) AS inactive_count "
+            "COALESCE(SUM(CASE WHEN role IS NOT NULL AND is_active = FALSE THEN 1 ELSE 0 END), 0) AS inactive_count "
             "FROM users",
             (),
         )
@@ -2293,6 +2299,7 @@ def super_admin_dashboard():
         "super_admin_dashboard.html",
         recent_activity=recent_activity,
         upcoming_events=upcoming_events,
+        latest_events=latest_events,
         user_overview=user_overview or {},
         sidebar_events=sidebar_events,
         section="super-admin-dashboard",
@@ -3150,19 +3157,24 @@ def public_access_hero_content():
         upcoming_public_event_count = cursor.fetchone()["upcoming_public_event_count"]
         if latest_public_event:
             cursor.execute(
-                "SELECT id, original_filename, mime_type FROM files "
-                "WHERE user_id = %s AND event_id = %s AND is_deleted = FALSE "
-                "AND LEFT(mime_type, 6) = 'image/' ORDER BY uploaded_at DESC LIMIT 1",
-                (latest_public_event["user_id"], latest_public_event["id"]),
+                "SELECT f.id, f.event_id FROM files AS f "
+                "JOIN events AS e ON e.id = f.event_id AND e.user_id = f.user_id "
+                "WHERE f.event_id = %s AND e.id = %s AND f.is_deleted = FALSE AND e.is_deleted = FALSE "
+                "AND LEFT(f.mime_type, 6) = 'image/' ORDER BY f.id",
+                (latest_public_event["id"], latest_public_event["id"]),
             )
-            preview_image = cursor.fetchone()
-            if preview_image:
-                latest_public_event["preview_image_url"] = url_for(
+            for image in cursor.fetchall():
+                image_url = url_for(
                     "preview_content",
-                    file_id=preview_image["id"],
+                    file_id=image["id"],
                     share_context_kind="event",
                     share_context_token=latest_public_event["share_token"],
                 )
+                latest_public_event.setdefault("preview_image_urls", []).append(image_url)
+
+            image_urls = latest_public_event.get("preview_image_urls", [])
+            if image_urls:
+                latest_public_event["preview_image_url"] = secrets.choice(image_urls)
     except MySQLError:
         app.logger.exception("Public workspace hero database error")
         return {
@@ -3234,6 +3246,11 @@ def public_dashboard():
             **item} for item in files]
     )
     public_hero_content = public_access_hero_content()
+    current_date = date.today()
+    has_public_event_today = any(
+        event.get("event_date") == current_date
+        for event in public_hero_content.get("upcoming_public_events", [])
+    )
     return render_template(
         "dashboard.html", page_title="Public Files", items=items, total_storage=0, total_files=len(items),
         section="files", current_folder=None, breadcrumbs=[], folder_id=None, event_id=None, current_event=None,
@@ -3245,6 +3262,8 @@ def public_dashboard():
         weeks=sunday_first_month_weeks(date.today().year, date.today().month), events_by_day={}, calendar_day_urls={},
         calendar_previous_url="", calendar_next_url="", show_calendar_back_link=False,
         date_grouped_file_list=group_file_list_by_date(items),
+        today=current_date,
+        has_public_event_today=has_public_event_today,
         **public_hero_content,
     )
 
