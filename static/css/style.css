@@ -4260,7 +4260,7 @@ button {
   text-align: left;
 }
 .file-table tbody.date-group:first-of-type .date-group-heading th {
-  padding-top: 4px;
+  padding-top: 10px;
 }
 .file-name a {
   display: flex;
@@ -5542,6 +5542,14 @@ hr {
     transform: translateX(0);
     visibility: visible;
   }
+  .sidebar-footer .mobile-sign-in-link {
+    color: #3e4652;
+    background: transparent;
+  }
+  .sidebar-footer .mobile-sign-in-link:hover {
+    color: #3e4652;
+    background: #ffe6e6;
+  }
   .sidebar-toggle {
     position: fixed;
     top: 14px;
@@ -5789,7 +5797,10 @@ hr {
   .dashboard-user-stats { padding-left: 0; }
   .dashboard-activity-list > li:not(.dashboard-empty) { flex-direction: column; gap: 4px; }
   .dashboard-activity-meta { display: flex; justify-content: space-between; justify-items: initial; text-align: left; }
-  .dashboard-user-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-user-stats {
+    display: flex;
+    flex-direction: column;
+  }
   .dashboard-user-stats > div:nth-child(3)::before { display: none; }
   .dashboard-user-stats > div:nth-child(n + 3)::after {
     position: absolute;
@@ -5922,7 +5933,7 @@ body[data-theme="dark"] select,
 body[data-theme="dark"] textarea,
 body[data-theme="dark"] [contenteditable="true"] {
   color: #f2f2f2;
-  background-color: #191919;
+  /* background-color: #191919; */
   border-color: #383838;
 }
 body[data-theme="dark"] input::placeholder,
@@ -5936,7 +5947,9 @@ body[data-theme="dark"] table,
 body[data-theme="dark"] table :is(th, td) { border-color: #303030; }
 body[data-theme="dark"] .file-table thead,
 body[data-theme="dark"] .file-table th,
-body[data-theme="dark"] .spreadsheet-table th { color: #f2f2f2; background-color: #191919; }
+body[data-theme="dark"] .spreadsheet-table th { color: #f2f2f2;
+  /* background-color: #191919; */
+}
 body[data-theme="dark"] .file-table td,
 body[data-theme="dark"] .file-table th,
 body[data-theme="dark"] .spreadsheet-table td,
@@ -6017,7 +6030,10 @@ body[data-theme="dark"] .modal { background-color: rgba(0, 0, 0, .72); }
 body[data-theme="dark"] .button,
 body[data-theme="dark"] .button :is(i, svg, span) {
   color: #000 !important;
+  background-color: #91d9a4 !important;
 }
+body[data-theme="dark"] .button:hover { color: #111 !important; background-color: #a2e2b2 !important; }
+body[data-theme="dark"] .button :is(i, svg, span):hover { color: #111 !important; background-color: #a2e2b2 !important; }
 body[data-theme="dark"] .button i,
 body[data-theme="dark"] .button svg { color: #111 !important; }
 body[data-theme="dark"] .public-workspace-featured-event,
