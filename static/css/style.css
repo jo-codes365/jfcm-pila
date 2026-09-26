@@ -6291,3 +6291,29 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .item-actions-modal .item-actions-card * { color: #F2F2F2 !important; }
   body[data-theme="system"] .item-actions-modal #star-item .bi-star-fill { color: #FFD43B !important; }
 }
+
+body[data-theme="dark"] .sidebar-footer .mobile-sign-in-link {
+  color: #f2f2f2 !important;
+  background: transparent;
+  border: 0;
+}
+body[data-theme="dark"] .sidebar-footer .mobile-sign-in-link :is(i, svg) { color: #f2f2f2 !important; }
+body[data-theme="dark"] .sidebar-footer .mobile-sign-in-link:hover {
+  color: #f2f2f2 !important;
+  background: #191919;
+}
+body[data-theme="dark"] .sidebar-footer .mobile-sign-in-link:hover :is(i, svg) { color: #f2f2f2 !important; }
+
+@media (prefers-color-scheme: dark) {
+  body[data-theme="system"] .sidebar-footer .mobile-sign-in-link {
+    color: #f2f2f2 !important;
+    background: transparent;
+    border: 0;
+  }
+  body[data-theme="system"] .sidebar-footer .mobile-sign-in-link :is(i, svg) { color: #f2f2f2 !important; }
+  body[data-theme="system"] .sidebar-footer .mobile-sign-in-link:hover {
+    color: #f2f2f2 !important;
+    background: #191919;
+  }
+  body[data-theme="system"] .sidebar-footer .mobile-sign-in-link:hover :is(i, svg) { color: #f2f2f2 !important; }
+}
