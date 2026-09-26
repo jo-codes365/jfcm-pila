@@ -5959,7 +5959,7 @@ body[data-theme="dark"] .file-table tbody tr,
 body[data-theme="dark"] .spreadsheet-table tr { background-color: #111; }
 body[data-theme="dark"] table tbody tr:nth-child(odd) { background-color: #111; }
 body[data-theme="dark"] table tbody tr:nth-child(even),
-body[data-theme="dark"] .spreadsheet-table tr:nth-child(even) { background-color: #151515; }
+body[data-theme="dark"] .spreadsheet-table tr:nth-child(even) { background-color: #111; }
 body[data-theme="dark"] table tbody tr:hover { background-color: #202020; }
 body[data-theme="dark"] .events-calendar-grid,
 body[data-theme="dark"] .events-calendar-day { background-color: #111; }
@@ -6167,7 +6167,7 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] th[colspan="5"][scope="rowgroup"] { background: transparent !important; }
   body[data-theme="system"] .file-table tbody tr:nth-child(even),
   body[data-theme="system"] table tbody tr:nth-child(even),
-  body[data-theme="system"] .spreadsheet-table tr:nth-child(even) { background-color: #151515; }
+  body[data-theme="system"] .spreadsheet-table tr:nth-child(even) { background-color: #111; }
   body[data-theme="system"] table tbody tr:nth-child(odd) { background-color: #111; }
   body[data-theme="system"] table tbody tr:hover,
   body[data-theme="system"] .sort-menu button:hover,
