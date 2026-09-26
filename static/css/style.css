@@ -5870,7 +5870,7 @@ body[data-theme="dark"] .workspace-header,
 body[data-theme="dark"] .topbar { background-color: #111; }
 body[data-theme="dark"] .workspace-body,
 body[data-theme="dark"] .workspace-content,
-body[data-theme="dark"] .settings-workspace-content,
+body[data-theme="dark"] .settings-workspace-content { background-color: #191919; }
 body[data-theme="dark"] .settings-page,
 body[data-theme="dark"] .settings-section { background-color: #111; }
 body[data-theme="dark"] .auth-card,
@@ -5931,6 +5931,26 @@ body[data-theme="dark"] .events-calendar-grid,
 body[data-theme="dark"] .events-calendar-day { background-color: #111; }
 body[data-theme="dark"] .events-calendar-grid > strong { background-color: #202020; }
 body[data-theme="dark"] .events-calendar-day-link:hover { color: #f2f2f2; background-color: #252525; }
+body[data-theme="dark"] .events-calendar-button,
+body[data-theme="dark"] .events-calendar-modal .events-calendar-month-button,
+body[data-theme="dark"] .events-calendar-modal .close-button {
+  color: #f2f2f2 !important;
+  background-color: #222;
+}
+body[data-theme="dark"] .events-calendar-button :is(i, svg),
+body[data-theme="dark"] .events-calendar-modal .events-calendar-month-button :is(i, svg),
+body[data-theme="dark"] .events-calendar-modal .close-button :is(i, svg) { color: #f2f2f2 !important; }
+body[data-theme="dark"] .events-calendar-button:hover,
+body[data-theme="dark"] .events-calendar-modal .events-calendar-month-button:hover,
+body[data-theme="dark"] .events-calendar-modal .close-button:hover { color: #f2f2f2 !important; background-color: #282828; }
+body[data-theme="dark"] .events-calendar-button[aria-expanded="true"],
+body[data-theme="dark"] .events-calendar-modal .events-calendar-month-button:active,
+body[data-theme="dark"] .events-calendar-modal .close-button:active {
+  color: #111 !important;
+  background-color: #91d9a4;
+}
+body[data-theme="dark"] .events-calendar-button[aria-expanded="true"] :is(i, svg),
+body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button, .close-button):active :is(i, svg) { color: #111 !important; }
 body[data-theme="dark"] .folder-content-card .image-card-header,
 body[data-theme="dark"] .folder-content-card .card-item-select { background-color: #191919; }
 body[data-theme="dark"] .workspace-skeleton-line,
@@ -5997,6 +6017,13 @@ body[data-theme="dark"] .global-search .search-label i { color: #ddd; }
 body[data-theme="dark"] .sidebar-link.active,
 body[data-theme="dark"] .sidebar-link.active:hover { color: #111 !important; background-color: #91d9a4; }
 body[data-theme="dark"] .sidebar-link.active:hover { background-color: #a2e2b2; }
+body[data-theme="dark"] .sidebar-link:hover,
+body[data-theme="dark"] .sidebar-link:hover :is(i, span),
+body[data-theme="dark"] .sidebar-event-parent:hover .sidebar-event-link,
+body[data-theme="dark"] .sidebar-event-parent:hover .sidebar-event-link i,
+body[data-theme="dark"] .sidebar-event-parent:hover .sidebar-event-toggle { color: #111 !important; }
+body[data-theme="dark"] .sidebar-link.active .sidebar-event-icon,
+body[data-theme="dark"] .sidebar-link:hover .sidebar-event-icon { filter: brightness(0) saturate(100%); }
 body[data-theme="dark"] .settings-section[aria-labelledby="appearance-settings-title"] .theme-options span {
   color: #f2f2f2;
   background-color: #191919;
@@ -6019,6 +6046,17 @@ body[data-theme="dark"] .inline-presentation-open[data-presentation-fullscreen] 
 }
 body[data-theme="dark"] .inline-presentation-open[data-presentation-fullscreen] .bi-arrows-fullscreen { color: #f2f2f2 !important; }
 body[data-theme="dark"] .inline-presentation-open[data-presentation-fullscreen]:hover { background-color: #282828; }
+body[data-theme="dark"] .events-calendar-button,
+body[data-theme="dark"] .events-calendar-modal .events-calendar-month-button,
+body[data-theme="dark"] .events-calendar-modal .close-button,
+body[data-theme="dark"] .events-calendar-button :is(i, svg),
+body[data-theme="dark"] .events-calendar-modal .events-calendar-month-button :is(i, svg),
+body[data-theme="dark"] .events-calendar-modal .close-button :is(i, svg) { color: #f2f2f2 !important; }
+body[data-theme="dark"] .events-calendar-button[aria-expanded="true"],
+body[data-theme="dark"] .events-calendar-modal .events-calendar-month-button:active,
+body[data-theme="dark"] .events-calendar-modal .close-button:active,
+body[data-theme="dark"] .events-calendar-button[aria-expanded="true"] :is(i, svg),
+body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button, .close-button):active :is(i, svg) { color: #111 !important; }
 
 @media (prefers-color-scheme: dark) {
   body[data-theme="system"] .settings-shell,
@@ -6051,6 +6089,9 @@ body[data-theme="dark"] .inline-presentation-open[data-presentation-fullscreen]:
   body[data-theme="system"] .folder-content-card,
   body[data-theme="system"] .date-workspace-panel,
   body[data-theme="system"] .date-workspace-event-card { background-color: #111; }
+  body[data-theme="system"] .workspace-body,
+  body[data-theme="system"] .workspace-content,
+  body[data-theme="system"] .settings-workspace-content { background-color: #191919; }
   body[data-theme="system"] :is(h1, h2, h3, h4, h5, p, label, dt, dd, th, td, li, span, strong, small, time, a, legend, summary, .field-help, .settings-section-heading, .settings-intro, .file-name, .folder-name) {
     color: #f2f2f2 !important;
   }
@@ -6119,6 +6160,30 @@ body[data-theme="dark"] .inline-presentation-open[data-presentation-fullscreen]:
   body[data-theme="system"] .presentation-fullscreen-controls button,
   body[data-theme="system"] .close-button-link:hover,
   body[data-theme="system"] .admin-create-user-messages.has-error { color: #f2f2f2; }
+  body[data-theme="system"] .events-calendar-grid,
+  body[data-theme="system"] .events-calendar-day { background-color: #111; }
+  body[data-theme="system"] .events-calendar-grid > strong { background-color: #202020; }
+  body[data-theme="system"] .events-calendar-day-link:hover { color: #f2f2f2; background-color: #252525; }
+  body[data-theme="system"] .events-calendar-button,
+  body[data-theme="system"] .events-calendar-modal .events-calendar-month-button,
+  body[data-theme="system"] .events-calendar-modal .close-button {
+    color: #f2f2f2 !important;
+    background-color: #222;
+  }
+  body[data-theme="system"] .events-calendar-button :is(i, svg),
+  body[data-theme="system"] .events-calendar-modal .events-calendar-month-button :is(i, svg),
+  body[data-theme="system"] .events-calendar-modal .close-button :is(i, svg) { color: #f2f2f2 !important; }
+  body[data-theme="system"] .events-calendar-button:hover,
+  body[data-theme="system"] .events-calendar-modal .events-calendar-month-button:hover,
+  body[data-theme="system"] .events-calendar-modal .close-button:hover { color: #f2f2f2 !important; background-color: #282828; }
+  body[data-theme="system"] .events-calendar-button[aria-expanded="true"],
+  body[data-theme="system"] .events-calendar-modal .events-calendar-month-button:active,
+  body[data-theme="system"] .events-calendar-modal .close-button:active {
+    color: #111 !important;
+    background-color: #91d9a4;
+  }
+  body[data-theme="system"] .events-calendar-button[aria-expanded="true"] :is(i, svg),
+  body[data-theme="system"] .events-calendar-modal :is(.events-calendar-month-button, .close-button):active :is(i, svg) { color: #111 !important; }
   body[data-theme="system"] .global-search,
   body[data-theme="system"] .global-search:focus-within,
   body[data-theme="system"] .file-search-input,
@@ -6132,6 +6197,13 @@ body[data-theme="dark"] .inline-presentation-open[data-presentation-fullscreen]:
   body[data-theme="system"] .sidebar-link.active,
   body[data-theme="system"] .sidebar-link.active:hover { color: #111 !important; background-color: #91d9a4; }
   body[data-theme="system"] .sidebar-link.active:hover { background-color: #a2e2b2; }
+  body[data-theme="system"] .sidebar-link:hover,
+  body[data-theme="system"] .sidebar-link:hover :is(i, span),
+  body[data-theme="system"] .sidebar-event-parent:hover .sidebar-event-link,
+  body[data-theme="system"] .sidebar-event-parent:hover .sidebar-event-link i,
+  body[data-theme="system"] .sidebar-event-parent:hover .sidebar-event-toggle { color: #111 !important; }
+  body[data-theme="system"] .sidebar-link.active .sidebar-event-icon,
+  body[data-theme="system"] .sidebar-link:hover .sidebar-event-icon { filter: brightness(0) saturate(100%); }
   body[data-theme="system"] .settings-section[aria-labelledby="appearance-settings-title"] .theme-options span {
     color: #f2f2f2;
     background-color: #191919;
