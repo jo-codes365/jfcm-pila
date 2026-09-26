@@ -5951,6 +5951,7 @@ body[data-theme="dark"] .spreadsheet-table th { color: #f2f2f2;
   /* background-color: #191919; */
 }
 body[data-theme="dark"] th[colspan="5"][scope="rowgroup"] { background: transparent !important; }
+body[data-theme="dark"] .file-table .date-group-heading th { background: transparent !important; }
 body[data-theme="dark"] .file-table td,
 body[data-theme="dark"] .file-table th,
 body[data-theme="dark"] .spreadsheet-table td,
@@ -6165,6 +6166,7 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .file-table th,
   body[data-theme="system"] .spreadsheet-table th { color: #f2f2f2; background-color: #191919; }
   body[data-theme="system"] th[colspan="5"][scope="rowgroup"] { background: transparent !important; }
+  body[data-theme="system"] .file-table .date-group-heading th { background: transparent !important; }
   body[data-theme="system"] .file-table tbody tr:nth-child(even),
   body[data-theme="system"] table tbody tr:nth-child(even),
   body[data-theme="system"] .spreadsheet-table tr:nth-child(even) { background-color: #111; }
