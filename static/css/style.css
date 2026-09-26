@@ -5924,7 +5924,7 @@ body[data-theme="dark"] .folder-content-card,
 body[data-theme="dark"] .date-workspace-panel,
 body[data-theme="dark"] .date-workspace-event-card { background-color: #161616; }
 
-body[data-theme="dark"] :is(h1, h2, h3, h4, h5, p, label, dt, dd, th, td, li, span, strong, small, time, a, legend, summary, .field-help, .settings-section-heading, .settings-intro, .file-name, .folder-name) {
+body[data-theme="dark"] :is(i, h1, h2, h3, h4, h5, p, label, dt, dd, th, td, li, span, strong, small, time, a, legend, summary, .field-help, .settings-section-heading, .settings-intro, .file-name, .folder-name) {
   color: #f2f2f2 !important;
 }
 
