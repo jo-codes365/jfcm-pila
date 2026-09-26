@@ -5130,7 +5130,10 @@ hr {
     margin-bottom: 20px;
   }
   .workspace-title h1 {
-    font-size: 1.4rem;
+    font-size: 1.1rem;
+  }
+  .title-filter {
+    gap: 0;
   }
   .upload-drawer {
     padding: 12px;
@@ -5199,6 +5202,23 @@ hr {
 
 /* Responsive font sizes for smaller screens */
 @media (max-width: 480px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+  .workspace-body,
+  .workspace-content,
+  .file-workspace,
+  .folder-workspace,
+  .folder-workspace .folder-workspace-body,
+  .folder-workspace-body .workspace-content,
+  .folder-workspace-body .file-workspace {
+    overflow: hidden;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    overflow-y: auto;
+  }
   .breadspan {
     font-size: 0.67rem;
     margin-bottom: 4px;
@@ -5951,6 +5971,11 @@ body[data-theme="dark"] .events-calendar-modal .close-button:active {
 }
 body[data-theme="dark"] .events-calendar-button[aria-expanded="true"] :is(i, svg),
 body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button, .close-button):active :is(i, svg) { color: #111 !important; }
+body[data-theme="dark"] .sidebar-toggle {
+  color: #555 !important;
+  background-color: #111;
+}
+body[data-theme="dark"] .sidebar-toggle :is(i, svg) { color: #555 !important; }
 body[data-theme="dark"] .folder-content-card .image-card-header,
 body[data-theme="dark"] .folder-content-card .card-item-select { background-color: #191919; }
 body[data-theme="dark"] .workspace-skeleton-line,
@@ -6236,4 +6261,9 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   }
   body[data-theme="system"] .inline-presentation-open[data-presentation-fullscreen] .bi-arrows-fullscreen { color: #f2f2f2 !important; }
   body[data-theme="system"] .inline-presentation-open[data-presentation-fullscreen]:hover { background-color: #282828; }
+  body[data-theme="system"] .sidebar-toggle {
+    color: #555 !important;
+    background-color: #111;
+  }
+  body[data-theme="system"] .sidebar-toggle :is(i, svg) { color: #555 !important; }
 }
