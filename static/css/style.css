@@ -39,7 +39,7 @@ body[data-theme="dark"] {
   --ink: #f5f5f5;
   --muted: #b8b8b8;
   --line: #303030;
-  --surface: #090909;
+  --surface: #030303;
   --canvas: #111111;
   --primary: #91d9a4;
   --primary-dark: #d0f5d8;
@@ -48,7 +48,7 @@ body[data-theme="dark"] .settings-shell,
 body[data-theme="dark"] .storage-shell,
 body[data-theme="dark"] .workspace,
 body[data-theme="dark"] .sidebar,
-body[data-theme="dark"] .workspace-header { background: #090909; }
+body[data-theme="dark"] .workspace-header { background: #030303; }
 body[data-theme="dark"] .settings-section,
 body[data-theme="dark"] .settings-header { border-color: #303030; }
 body[data-theme="dark"] .settings-form input { color: var(--ink); background: #181818; border-color: #383838; }
@@ -63,7 +63,7 @@ body[data-theme="dark"] .offline-item-list li { border-color: #303030; }
     --ink: #f5f5f5;
     --muted: #b8b8b8;
     --line: #303030;
-    --surface: #090909;
+    --surface: #030303;
     --canvas: #111111;
     --primary: #91d9a4;
     --primary-dark: #d0f5d8;
@@ -72,7 +72,7 @@ body[data-theme="dark"] .offline-item-list li { border-color: #303030; }
   body[data-theme="system"] .storage-shell,
   body[data-theme="system"] .workspace,
   body[data-theme="system"] .sidebar,
-  body[data-theme="system"] .workspace-header { background: #090909; }
+  body[data-theme="system"] .workspace-header { background: #030303; }
   body[data-theme="system"] .settings-section,
   body[data-theme="system"] .settings-header { border-color: #303030; }
   body[data-theme="system"] .settings-form input { color: var(--ink); background: #181818; border-color: #383838; }
@@ -5890,7 +5890,7 @@ body[data-theme="dark"] .workspace-header,
 body[data-theme="dark"] .topbar { background-color: #111; }
 body[data-theme="dark"] .workspace-body,
 body[data-theme="dark"] .workspace-content,
-body[data-theme="dark"] .settings-workspace-content { background-color: #030303; }
+body[data-theme="dark"] .settings-workspace-content { background-color: #111; }
 body[data-theme="dark"] .settings-page,
 body[data-theme="dark"] .settings-section { background-color: #111; }
 body[data-theme="dark"] .auth-card,
@@ -5972,10 +5972,10 @@ body[data-theme="dark"] .events-calendar-modal .close-button:active {
 body[data-theme="dark"] .events-calendar-button[aria-expanded="true"] :is(i, svg),
 body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button, .close-button):active :is(i, svg) { color: #111 !important; }
 body[data-theme="dark"] .sidebar-toggle {
-  color: #555 !important;
+  color: #ddd !important;
   background-color: #111;
 }
-body[data-theme="dark"] .sidebar-toggle :is(i, svg) { color: #555 !important; }
+body[data-theme="dark"] .sidebar-toggle :is(i, svg) { color: #ddd !important; }
 body[data-theme="dark"] .folder-content-card .image-card-header,
 body[data-theme="dark"] .folder-content-card .card-item-select { background-color: #191919; }
 body[data-theme="dark"] .workspace-skeleton-line,
@@ -6121,7 +6121,7 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .date-workspace-event-card { background-color: #111; }
   body[data-theme="system"] .workspace-body,
   body[data-theme="system"] .workspace-content,
-  body[data-theme="system"] .settings-workspace-content { background-color: #030303; }
+  body[data-theme="system"] .settings-workspace-content { background-color: #111; }
   body[data-theme="system"] :is(h1, h2, h3, h4, h5, p, label, dt, dd, th, td, li, span, strong, small, time, a, legend, summary, .field-help, .settings-section-heading, .settings-intro, .file-name, .folder-name) {
     color: #f2f2f2 !important;
   }
@@ -6262,8 +6262,8 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .inline-presentation-open[data-presentation-fullscreen] .bi-arrows-fullscreen { color: #f2f2f2 !important; }
   body[data-theme="system"] .inline-presentation-open[data-presentation-fullscreen]:hover { background-color: #282828; }
   body[data-theme="system"] .sidebar-toggle {
-    color: #555 !important;
+    color: #ddd !important;
     background-color: #111;
   }
-  body[data-theme="system"] .sidebar-toggle :is(i, svg) { color: #555 !important; }
+  body[data-theme="system"] .sidebar-toggle :is(i, svg) { color: #ddd !important; }
 }
