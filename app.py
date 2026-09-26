@@ -2234,7 +2234,7 @@ def settings():
 def audit_trail():
     try:
         ensure_audit_log_table()
-        page_size = 30
+        page_size = 15
         page = request.args.get("page", 1, type=int) or 1
         page = max(1, page)
         count_result = query_one("SELECT COUNT(*) AS total FROM audit_logs", ())
