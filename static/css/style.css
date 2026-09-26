@@ -1962,7 +1962,6 @@ table tbody tr:nth-child(even) {
 #settings-search::-ms-clear {
   display: none;
 }
-#admin-dashboard-search::-webkit-search-results-decoration {
 .settings-search-highlight {
   border-radius: 2px;
   color: inherit;
