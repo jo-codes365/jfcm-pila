@@ -2234,9 +2234,17 @@ def settings():
 def audit_trail():
     try:
         ensure_audit_log_table()
+        page_size = 30
+        page = request.args.get("page", 1, type=int) or 1
+        page = max(1, page)
+        count_result = query_one("SELECT COUNT(*) AS total FROM audit_logs", ())
+        total_records = int(count_result["total"] or 0) if count_result else 0
+        total_pages = (total_records + page_size - 1) // page_size
+        page = min(page, max(total_pages, 1))
         records = query_all(
             "SELECT created_at, username, action, item FROM audit_logs "
-            "ORDER BY created_at DESC, id DESC LIMIT 2000"
+            "ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s",
+            (page_size, (page - 1) * page_size),
         )
         sidebar_events = query_all(
             "SELECT id, name, event_date, event_type FROM events "
@@ -2250,6 +2258,12 @@ def audit_trail():
     return render_template(
         "audit_trail.html",
         records=records,
+        page=page,
+        page_size=page_size,
+        total_records=total_records,
+        total_pages=total_pages,
+        first_record=(page - 1) * page_size + 1 if total_records else 0,
+        last_record=min(page * page_size, total_records),
         sidebar_events=sidebar_events,
         section="audit-trail",
         is_public_workspace=False,

@@ -12,7 +12,7 @@
         <div class="settings-page">
           <div class="settings-intro"><h1>Audit Trail</h1><p>Recent actions by users across JFCM Library.</p></div>
           <section class="settings-section" aria-labelledby="audit-trail-title">
-            <div class="settings-section-heading"><i class="bi bi-journal-text"></i><div><h2 id="audit-trail-title">Activity</h2><p>Showing the latest {{ records|length }} actions.</p></div></div>
+            <div class="settings-section-heading"><i class="bi bi-journal-text"></i><div><h2 id="audit-trail-title">Activity</h2><p>Showing {{ first_record }}-{{ last_record }} of {{ total_records }} actions.</p></div></div>
             <div class="table-wrap audit-trail-table-wrap">
               <table class="file-table audit-trail-table">
                 <thead><tr><th>Date and Time</th><th>User</th><th>Action</th><th>Item</th></tr></thead>
@@ -25,6 +25,26 @@
                 </tbody>
               </table>
             </div>
+            {% if total_pages > 1 %}
+            <div class="pagination-container">
+              <div class="pagination">
+                <span class="pagination-info">{{ first_record }}-{{ last_record }} of {{ total_records }}</span>
+                <nav class="pagination-controls" aria-label="Audit Trail pages">
+                  {% if page > 1 %}
+                  <a class="pagination-btn" href="{{ url_for('audit_trail', page=page - 1) }}" aria-label="Previous page">Previous</a>
+                  {% else %}
+                  <span class="pagination-btn disabled" aria-disabled="true">Previous</span>
+                  {% endif %}
+                  <span class="pagination-current" aria-current="page">Page {{ page }} of {{ total_pages }}</span>
+                  {% if page < total_pages %}
+                  <a class="pagination-btn" href="{{ url_for('audit_trail', page=page + 1) }}" aria-label="Next page">Next</a>
+                  {% else %}
+                  <span class="pagination-btn disabled" aria-disabled="true">Next</span>
+                  {% endif %}
+                </nav>
+              </div>
+            </div>
+            {% endif %}
           </section>
         </div>
       </div>
