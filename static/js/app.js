@@ -443,6 +443,74 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  var adminDashboardSearchInput = document.getElementById("admin-dashboard-search");
+  var adminDashboardSearchClear = document.getElementById("admin-dashboard-search-clear");
+  var adminDashboardSearchEmpty = document.getElementById("admin-dashboard-search-empty");
+  var adminDashboardContent = document.querySelector(".super-admin-dashboard");
+  if (adminDashboardSearchInput && adminDashboardContent) {
+    var adminDashboardSections = Array.from(adminDashboardContent.querySelectorAll(".dashboard-panel"));
+    var clearAdminDashboardHighlights = function () {
+      adminDashboardContent.querySelectorAll("mark.settings-search-highlight").forEach(function (highlight) {
+        highlight.replaceWith(document.createTextNode(highlight.textContent));
+      });
+      adminDashboardContent.normalize();
+    };
+    var highlightAdminDashboardMatches = function (query) {
+      if (!query) return;
+      var walker = document.createTreeWalker(adminDashboardContent, NodeFilter.SHOW_TEXT);
+      var textNodes = [];
+      var node;
+      while ((node = walker.nextNode())) {
+        var parent = node.parentElement;
+        if (!parent || parent.closest("[hidden], button, .settings-search-empty")) continue;
+        textNodes.push(node);
+      }
+      textNodes.forEach(function (textNode) {
+        var value = textNode.nodeValue;
+        var lowerValue = value.toLowerCase();
+        var lowerQuery = query.toLowerCase();
+        var matchIndex = lowerValue.indexOf(lowerQuery);
+        if (matchIndex === -1) return;
+        var fragment = document.createDocumentFragment();
+        var previousIndex = 0;
+        while (matchIndex !== -1) {
+          fragment.appendChild(document.createTextNode(value.slice(previousIndex, matchIndex)));
+          var highlight = document.createElement("mark");
+          highlight.className = "settings-search-highlight";
+          highlight.textContent = value.slice(matchIndex, matchIndex + query.length);
+          fragment.appendChild(highlight);
+          previousIndex = matchIndex + query.length;
+          matchIndex = lowerValue.indexOf(lowerQuery, previousIndex);
+        }
+        fragment.appendChild(document.createTextNode(value.slice(previousIndex)));
+        textNode.replaceWith(fragment);
+      });
+    };
+    var filterAdminDashboard = function () {
+      var query = adminDashboardSearchInput.value.trim().toLowerCase();
+      var visibleSectionCount = 0;
+      clearAdminDashboardHighlights();
+      adminDashboardSections.forEach(function (section) {
+        var searchableSection = section.cloneNode(true);
+        searchableSection.querySelectorAll("button, a").forEach(function (control) { control.remove(); });
+        var matches = !query || searchableSection.textContent.toLowerCase().includes(query);
+        section.hidden = !matches;
+        if (matches) visibleSectionCount += 1;
+      });
+      highlightAdminDashboardMatches(query);
+      if (adminDashboardSearchClear) adminDashboardSearchClear.hidden = !query;
+      if (adminDashboardSearchEmpty) adminDashboardSearchEmpty.hidden = !query || visibleSectionCount > 0;
+    };
+    adminDashboardSearchInput.addEventListener("input", filterAdminDashboard);
+    if (adminDashboardSearchClear) {
+      adminDashboardSearchClear.addEventListener("click", function () {
+        adminDashboardSearchInput.value = "";
+        filterAdminDashboard();
+        adminDashboardSearchInput.focus();
+      });
+    }
+  }
+
   document.querySelectorAll("[data-public-workspace-highlight-close]").forEach(function (closeButton) {
     closeButton.addEventListener("click", function () {
       var highlight = closeButton.closest("[data-public-workspace-highlight]");
