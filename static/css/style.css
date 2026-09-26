@@ -5950,6 +5950,7 @@ body[data-theme="dark"] .file-table th,
 body[data-theme="dark"] .spreadsheet-table th { color: #f2f2f2;
   /* background-color: #191919; */
 }
+body[data-theme="dark"] th[colspan="5"][scope="rowgroup"] { background: transparent !important; }
 body[data-theme="dark"] .file-table td,
 body[data-theme="dark"] .file-table th,
 body[data-theme="dark"] .spreadsheet-table td,
@@ -5989,6 +5990,9 @@ body[data-theme="dark"] .sidebar-toggle {
   background-color: #111;
 }
 body[data-theme="dark"] .sidebar-toggle :is(i, svg) { color: #ddd !important; }
+body[data-theme="dark"] .item-actions-modal .item-actions-card,
+body[data-theme="dark"] .item-actions-modal .item-actions-card * { color: #F2F2F2 !important; }
+body[data-theme="dark"] .item-actions-modal #star-item .bi-star-fill { color: #FFD43B !important; }
 body[data-theme="dark"] .folder-content-card .image-card-header,
 body[data-theme="dark"] .folder-content-card .card-item-select { background-color: #191919; }
 body[data-theme="dark"] .workspace-skeleton-line,
@@ -6160,6 +6164,7 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .file-table thead,
   body[data-theme="system"] .file-table th,
   body[data-theme="system"] .spreadsheet-table th { color: #f2f2f2; background-color: #191919; }
+  body[data-theme="system"] th[colspan="5"][scope="rowgroup"] { background: transparent !important; }
   body[data-theme="system"] .file-table tbody tr:nth-child(even),
   body[data-theme="system"] table tbody tr:nth-child(even),
   body[data-theme="system"] .spreadsheet-table tr:nth-child(even) { background-color: #151515; }
@@ -6282,4 +6287,7 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
     background-color: #111;
   }
   body[data-theme="system"] .sidebar-toggle :is(i, svg) { color: #ddd !important; }
+  body[data-theme="system"] .item-actions-modal .item-actions-card,
+  body[data-theme="system"] .item-actions-modal .item-actions-card * { color: #F2F2F2 !important; }
+  body[data-theme="system"] .item-actions-modal #star-item .bi-star-fill { color: #FFD43B !important; }
 }
