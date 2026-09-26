@@ -5933,7 +5933,7 @@ body[data-theme="dark"] select,
 body[data-theme="dark"] textarea,
 body[data-theme="dark"] [contenteditable="true"] {
   color: #f2f2f2;
-  /* background-color: #191919; */
+  background-color: transparent;
   border-color: #383838;
 }
 body[data-theme="dark"] input::placeholder,
