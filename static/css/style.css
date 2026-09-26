@@ -5870,7 +5870,7 @@ body[data-theme="dark"] .workspace-header,
 body[data-theme="dark"] .topbar { background-color: #111; }
 body[data-theme="dark"] .workspace-body,
 body[data-theme="dark"] .workspace-content,
-body[data-theme="dark"] .settings-workspace-content { background-color: #191919; }
+body[data-theme="dark"] .settings-workspace-content { background-color: #030303; }
 body[data-theme="dark"] .settings-page,
 body[data-theme="dark"] .settings-section { background-color: #111; }
 body[data-theme="dark"] .auth-card,
@@ -6091,7 +6091,7 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .date-workspace-event-card { background-color: #111; }
   body[data-theme="system"] .workspace-body,
   body[data-theme="system"] .workspace-content,
-  body[data-theme="system"] .settings-workspace-content { background-color: #191919; }
+  body[data-theme="system"] .settings-workspace-content { background-color: #030303; }
   body[data-theme="system"] :is(h1, h2, h3, h4, h5, p, label, dt, dd, th, td, li, span, strong, small, time, a, legend, summary, .field-help, .settings-section-heading, .settings-intro, .file-name, .folder-name) {
     color: #f2f2f2 !important;
   }
