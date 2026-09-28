@@ -2049,6 +2049,8 @@ def register():
             finally:
                 if cursor:
                     cursor.close()
+    if request.method == "POST":
+        return redirect(url_for("register"), code=303)
     return render_template("register.html")
 
 
@@ -2091,22 +2093,22 @@ def login_post():
                 touch_authenticated_session()
                 record_audit_action(user["id"], "User logged in")
                 if user["role"] == "super-admin":
-                    return redirect(url_for("super_admin_dashboard"))
-                return redirect(url_for("dashboard"))
+                    return redirect(url_for("super_admin_dashboard"), code=303)
+                return redirect(url_for("dashboard"), code=303)
         except MySQLError:
             app.logger.exception("Login database error")
             flash("Unable to sign in right now. Please try again.", "error")
-    return render_template("login.html")
+    return redirect(url_for("login"), code=303)
 
 
-@app.route("/logout", methods=["GET", "POST"])
+@app.post("/logout")
 def logout():
     user_id = session.get("principal_id", session.get("user_id"))
     if user_id:
         record_audit_action(user_id, "User logged out")
     session.clear()
     flash("You have been signed out.", "success")
-    return redirect(url_for("login"))
+    return redirect(url_for("login"), code=303)
 
 
 def public_settings_or_login_required(view):
@@ -2396,6 +2398,8 @@ def manage_users():
     )
     if request.method == "POST" and request.form.get("return_to_settings") == "1":
         return redirect(url_for("settings"))
+    if request.method == "POST":
+        return redirect(url_for("manage_users"), code=303)
     return render_template("admin_users.html", users=users)
 
 
@@ -2506,6 +2510,8 @@ def system_settings():
                 flash("Unable to save system settings.", "error")
             finally:
                 cursor.close()
+    if request.method == "POST":
+        return redirect(url_for("system_settings"), code=303)
     return render_template("admin_settings.html", max_file_size_mb=current_upload_limit_mb(), max_allowed_file_size_mb=MAX_FILE_SIZE_MB)
 
 
@@ -4947,6 +4953,16 @@ def csrf_error(error):
             "message": "Your upload request was rejected because its security token expired. Refresh the page and try again.",
         }), 400
     return render_template("error.html", message="Your form expired. Refresh the page and try again."), 400
+
+
+@app.after_request
+def prevent_sensitive_page_history_replay(response):
+    """Avoid restoring authentication forms or signed-in pages from stale history."""
+    if request.endpoint in {"login", "login_post", "register", "logout"} or (
+        session.get("user_id") and response.mimetype == "text/html"
+    ):
+        response.headers["Cache-Control"] = "no-store, private"
+    return response
 
 
 @app.errorhandler(404)

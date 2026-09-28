@@ -785,6 +785,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (logoutModal) logoutModal.style.zIndex = "35";
   var cancelLogout = document.getElementById("cancel-logout");
   var confirmLogout = document.getElementById("confirm-logout");
+  var logoutForm = document.getElementById("logout-form");
   if (logoutLink && logoutModal) {
     logoutLink.addEventListener("click", function (event) {
       event.preventDefault();
@@ -800,7 +801,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (confirmLogout) {
       confirmLogout.addEventListener("click", async function (event) {
         event.preventDefault();
-        var destination = confirmLogout.href;
+        confirmLogout.disabled = true;
         try {
           if ("caches" in window) {
             var names = await caches.keys();
@@ -812,7 +813,8 @@ document.addEventListener("DOMContentLoaded", function () {
           var worker = navigator.serviceWorker && navigator.serviceWorker.controller;
           if (worker) worker.postMessage({ type: "SET_OFFLINE_SCOPE", scope: "public" });
         } catch (_error) {}
-        window.location.href = destination;
+        if (logoutForm) logoutForm.requestSubmit();
+        else confirmLogout.disabled = false;
       });
     }
   }

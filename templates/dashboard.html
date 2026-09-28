@@ -738,16 +738,6 @@
     </div>
   </section>
 </div>
-<div id="logout-modal" class="modal" hidden aria-modal="true" role="dialog" aria-labelledby="logout-title">
-  <section class="modal-card">
-    <h2 id="logout-title">Sign out?</h2>
-    <p>Are you sure you want to sign out?</p>
-    <div class="modal-actions">
-      <button id="cancel-logout" class="button secondary" type="button">Cancel</button>
-      <a id="confirm-logout" class="button danger" href="{{ url_for('logout') }}">Sign out</a>
-    </div>
-  </section>
-</div>
 <div id="events-calendar-modal" class="modal events-calendar-modal" hidden aria-modal="true" role="dialog" aria-labelledby="events-calendar-modal-title">
   <section class="modal-card events-calendar-modal-card"{% if calendar_auto_open %} data-auto-open="true"{% endif %}>
     <div class="events-calendar-modal-header">

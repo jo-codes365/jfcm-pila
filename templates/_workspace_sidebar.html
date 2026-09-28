@@ -26,7 +26,7 @@
     <div class="sidebar-footer">
       {% if session.get('user_id') %}
       <a class="sidebar-link secondary" href="{{ url_for('dashboard') }}"><i class="bi bi-folder2-open"></i> Files</a>
-      <a class="sidebar-link trash" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
+      <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="sidebar-link trash" type="submit"><i class="bi bi-box-arrow-right"></i> Sign out</button></form>
       {% else %}
       <a class="sidebar-link {% if section == 'settings' %}active{% endif %}" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings</a>
       <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
@@ -76,14 +76,16 @@
       {% endif %}
     </nav>
     <div class="sidebar-footer">
+      {% if not g.is_super_admin|default(false) %}
       <div class="storage-summary">
         <span>Storage used</span>
         <strong>{{ readable_size(total_storage) }}</strong>
       </div>
+      {% endif %}
       {% if g.is_super_admin|default(false) %}<a class="sidebar-link {% if section == 'audit-trail' %}active{% endif %}" href="{{ url_for('audit_trail') }}"><i class="bi bi-journal-text"></i> Audit Trail</a>{% endif %}
       <a class="sidebar-link {% if section == 'settings' %}active{% endif %}" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings</a>
       <hr style="width: 100%; margin: 3px 0; background-color: #cbd2dc; size: 0.5px;">
-      <a id="logout-link" class="sidebar-link trash" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sign out</a>
+      <a id="logout-link" class="sidebar-link trash" href="#logout-modal"><i class="bi bi-box-arrow-right"></i> Sign out</a>
       {% include "_legal_links.html" %}
     </div>
     {% endif %}
