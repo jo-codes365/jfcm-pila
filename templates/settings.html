@@ -119,7 +119,6 @@
               <label>Confirm new password<input name="confirm_password" required minlength="6" type="password" autocomplete="new-password"></label>
               <div class="settings-form-actions"><button class="button secondary" type="submit">Change password</button></div>
             </form>
-            <form class="settings-logout" method="post" action="{{ url_for('logout') }}" data-confirm-message="Sign out of JFCM Library on this device?"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-button trash-text" type="submit"><i class="bi bi-box-arrow-right"></i> Log out</button></form>
           </section>
           {% endif %}
 

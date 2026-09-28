@@ -1529,6 +1529,14 @@ table tbody tr:nth-child(even) {
   background: url('../images/ss.png') center center / 100vw 100vh no-repeat;
   filter: blur(3px) brightness(0.4);
 }
+body[data-theme="dark"] .preview-page::before {
+  background-image: url('../images/ss_dark.png');
+}
+@media (prefers-color-scheme: dark) {
+  body[data-theme="system"] .preview-page::before {
+    background-image: url('../images/ss_dark.png');
+  }
+}
 
 .preview-modal {
   position: relative;
@@ -4082,6 +4090,14 @@ button {
   overflow-x: hidden;
   overflow-y: auto;
 }
+.table-wrap[data-date-grouped-file-list] .file-table {
+  height: auto;
+}
+.table-wrap[data-date-grouped-file-list] .file-table tbody.date-group {
+  flex: none;
+  min-height: auto;
+  overflow: visible;
+}
 .file-table tbody tr {
   display: table;
   width: 100%;
@@ -5685,7 +5701,6 @@ hr {
 .admin-user-actions button,
 .admin-user-actions select { max-width: 100%; }
 .audit-trail-table-wrap {
-  max-height: min(65vh, 720px);
   overflow: auto;
   max-width: 100%;
   overscroll-behavior: contain;
@@ -5708,6 +5723,11 @@ hr {
   text-align: left;
   vertical-align: middle;
   overflow-wrap: anywhere;
+}
+.audit-trail-table td:nth-child(4) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .audit-trail-table th:nth-child(1), .audit-trail-table td:nth-child(1) { width: 24%; }
 .audit-trail-table th:nth-child(2), .audit-trail-table td:nth-child(2) { width: 18%; }
@@ -5749,6 +5769,13 @@ hr {
 .dashboard-activity-list strong { color: #26332b; font-size: .88rem; font-weight: 600; }
 .dashboard-activity-list li > div:first-child > span,
 .dashboard-activity-meta { color: #68756c; font-size: .8rem; }
+.dashboard-activity-list li > div:first-child > span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .dashboard-activity-meta { display: grid; justify-items: end; flex: 0 0 auto; text-align: right; }
 .dashboard-event-list a {
   display: flex;
@@ -6041,6 +6068,19 @@ body[data-theme="dark"] .button:hover { color: #111 !important; background-color
 body[data-theme="dark"] .button :is(i, svg, span):hover { color: #111 !important; background-color: #a2e2b2 !important; }
 body[data-theme="dark"] .button i,
 body[data-theme="dark"] .button svg { color: #111 !important; }
+body[data-theme="dark"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn {
+  color: #f2f2f2;
+  background-color: #222;
+}
+body[data-theme="dark"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn :is(i, svg) { color: #f2f2f2; }
+body[data-theme="dark"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn:hover:not(:disabled) {
+  color: #91d9a4;
+  background-color: #252525;
+}
+body[data-theme="dark"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn.disabled {
+  color: #8b949e;
+  background-color: #191919;
+}
 body[data-theme="dark"] .public-workspace-featured-event,
 body[data-theme="dark"] .public-workspace-featured-copy,
 body[data-theme="dark"] .public-workspace-featured-copy :is(span, strong),
@@ -6124,6 +6164,19 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .sidebar,
   body[data-theme="system"] .workspace-header,
   body[data-theme="system"] .topbar { background-color: #111; }
+  body[data-theme="system"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn {
+    color: #f2f2f2;
+    background-color: #222;
+  }
+  body[data-theme="system"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn :is(i, svg) { color: #f2f2f2; }
+  body[data-theme="system"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn:hover:not(:disabled) {
+    color: #91d9a4;
+    background-color: #252525;
+  }
+  body[data-theme="system"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn.disabled {
+    color: #8b949e;
+    background-color: #191919;
+  }
   body[data-theme="system"] .workspace-body,
   body[data-theme="system"] .workspace-content,
   body[data-theme="system"] .settings-workspace-content,
@@ -6321,6 +6374,11 @@ body[data-theme="dark"] .sidebar-footer .mobile-sign-in-link:hover {
   background: #191919;
 }
 body[data-theme="dark"] .sidebar-footer .mobile-sign-in-link:hover :is(i, svg) { color: #f2f2f2 !important; }
+
+/* Date group headers stay visually unchanged while the pointer is over them. */
+.file-table tbody tr:has(> th[scope="rowgroup"]):hover {
+  background: transparent !important;
+}
 
 @media (prefers-color-scheme: dark) {
   body[data-theme="system"] .sidebar-footer .mobile-sign-in-link {

@@ -4560,12 +4560,12 @@ def empty_trash():
     owner_sql = "" if owner_id is None else "user_id = %s AND "
     owner_values = () if owner_id is None else (owner_id,)
     try:
-        cursor.execute("SELECT COUNT(*) FROM events WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
-        deleted_count = cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM folders WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
-        deleted_count += cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM files WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
-        deleted_count += cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) AS total FROM events WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
+        deleted_count = cursor.fetchone()["total"]
+        cursor.execute("SELECT COUNT(*) AS total FROM folders WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
+        deleted_count += cursor.fetchone()["total"]
+        cursor.execute("SELECT COUNT(*) AS total FROM files WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
+        deleted_count += cursor.fetchone()["total"]
         cursor.execute("SELECT id, user_id, name FROM events WHERE " + owner_sql + "is_deleted = TRUE", owner_values)
         for event in cursor.fetchall():
             permanently_delete_event_record(cursor, event)
