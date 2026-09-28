@@ -5705,6 +5705,12 @@ hr {
   max-width: 100%;
   overscroll-behavior: contain;
 }
+.settings-section[aria-labelledby="audit-trail-title"] .pagination-btn {
+  padding: 7px 12px;
+}
+.settings-section[aria-labelledby="audit-trail-title"] .pagination-btn:hover:not(:disabled) {
+  text-decoration: none;
+}
 .audit-trail-table {
   display: table;
   width: 100%;
@@ -6076,7 +6082,9 @@ body[data-theme="dark"] .settings-section[aria-labelledby="audit-trail-title"] .
 body[data-theme="dark"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn:hover:not(:disabled) {
   color: #91d9a4;
   background-color: #252525;
+  text-decoration: none;
 }
+body[data-theme="dark"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn:hover:not(:disabled) :is(i, svg) { color: #91d9a4 !important; }
 body[data-theme="dark"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn.disabled {
   color: #8b949e;
   background-color: #191919;
@@ -6172,7 +6180,9 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn:hover:not(:disabled) {
     color: #91d9a4;
     background-color: #252525;
+    text-decoration: none;
   }
+  body[data-theme="system"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn:hover:not(:disabled) :is(i, svg) { color: #91d9a4 !important; }
   body[data-theme="system"] .settings-section[aria-labelledby="audit-trail-title"] .pagination-btn.disabled {
     color: #8b949e;
     background-color: #191919;
