@@ -925,7 +925,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var extension = file.name.indexOf(".") === -1 ? "" : file.name.split(".").pop().toLowerCase();
     var mimeType = (file.type || "").toLowerCase();
     var iconKey = "file";
-    if (mimeType.indexOf("image/") === 0 || ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "ico", "tif", "tiff"].includes(extension)) iconKey = "image";
+    if (mimeType.indexOf("image/") === 0 || ["jpg", "jpeg", "jpe", "png", "gif", "webp", "bmp", "svg", "ico", "tif", "tiff"].includes(extension)) iconKey = "image";
     else if (mimeType === "application/pdf" || extension === "pdf") iconKey = "pdf";
     else if (["doc", "docx", "odt", "rtf", "txt", "md"].includes(extension)) iconKey = "document";
     else if (["xls", "xlsx", "ods", "csv", "tsv"].includes(extension)) iconKey = "spreadsheet";

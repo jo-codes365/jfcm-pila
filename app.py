@@ -1676,7 +1676,7 @@ FILE_TYPE_DEFINITIONS = (
         "label": "Image",
         "icon": "Image.png",
         "mime_prefixes": ("image/",),
-        "extensions": {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".ico", ".tif", ".tiff"},
+        "extensions": {".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp", ".bmp", ".svg", ".ico", ".tif", ".tiff"},
     },
     {
         "key": "pdf",
