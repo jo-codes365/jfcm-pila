@@ -25,7 +25,7 @@ DROP TABLE IF EXISTS `audit_logs`;
 CREATE TABLE `audit_logs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `user_id` int unsigned DEFAULT NULL,
-  `username` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `username` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `action` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
   `item` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -226,7 +226,7 @@ DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `username` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `username` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `role` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'admin',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

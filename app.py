@@ -2359,14 +2359,14 @@ def update_settings_account():
 def manage_users():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower() or None
-        username = request.form.get("username", "").strip().lower()
+        username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
         role = request.form.get("role", "")
-        if not re.fullmatch(r"[a-z0-9_]{3,20}", username):
-            flash("Username must be 3-20 characters using letters, numbers, or underscores.", "error")
+        if len(username) < 3:
+            flash("Username must be at least 3 characters.", "error")
         elif email and ("@" not in email or len(email) > 255):
-            flash("Enter a valid email address or leave it blank.", "error")
+            flash("Enter a valid email address.", "error")
         elif not password or len(password) < 6:
             flash("Password must be at least 6 characters.", "error")
         elif password != confirm:

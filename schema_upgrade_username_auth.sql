@@ -4,5 +4,5 @@
 USE file_storage;
 
 ALTER TABLE users
-ADD COLUMN username VARCHAR(20) NULL AFTER email,
+ADD COLUMN username VARCHAR(255) NULL AFTER email,
 ADD UNIQUE KEY uq_users_username (username);

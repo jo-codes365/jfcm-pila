@@ -67,6 +67,36 @@ class SuperAdminAccessTests(unittest.TestCase):
             self.assertEqual(sess["user_id"], 2)
             self.assertEqual(sess["principal_id"], 1)
 
+    def test_create_user_accepts_optional_email_and_unrestricted_username(self):
+        self.set_identity(1)
+        cursor = unittest.mock.Mock()
+        connection = unittest.mock.Mock()
+        connection.cursor.return_value = cursor
+        with patch.object(library, "get_db", return_value=connection), \
+             patch.object(library, "generate_password_hash", return_value="hashed"), \
+             patch.object(library, "record_audit_action"):
+            response = self.client.post("/admin/users", data={
+                "username": "My user!",
+                "password": "secret1",
+                "confirm_password": "secret1",
+                "role": "admin",
+                "return_to_settings": "1",
+            })
+        self.assertEqual(response.status_code, 302)
+        cursor.execute.assert_called_once()
+        self.assertEqual(cursor.execute.call_args.args[1], (None, "My user!", "hashed", "admin"))
+
+    def test_create_user_rejects_username_shorter_than_three_characters(self):
+        self.set_identity(1)
+        response = self.client.post("/admin/users", data={
+            "username": "ab",
+            "password": "secret1",
+            "confirm_password": "secret1",
+            "role": "admin",
+            "return_to_settings": "1",
+        })
+        self.assertEqual(response.status_code, 302)
+
 
 if __name__ == "__main__":
     unittest.main()
