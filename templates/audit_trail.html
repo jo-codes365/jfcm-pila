@@ -28,7 +28,7 @@
             {% if total_pages > 1 %}
             <div class="pagination-container">
               <div class="pagination">
-                <span class="pagination-info">{{ first_record }}-{{ last_record }} of {{ total_records }} actions</span>
+                <span class="pagination-info">Showing {{ first_record }}-{{ last_record }} of {{ total_records }} actions</span>
                 <nav class="pagination-controls" aria-label="Audit Trail pages">
                   {% if page > 1 %}
                   <a class="pagination-btn" href="{{ url_for('audit_trail', page=page - 1) }}" aria-label="Previous page">Previous</a>

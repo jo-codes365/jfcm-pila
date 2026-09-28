@@ -456,6 +456,20 @@ def is_super_admin_principal():
     return g.is_super_admin
 
 
+def authenticated_sidebar_events():
+    """Return the Event links visible to the signed-in principal."""
+    if is_super_admin_principal():
+        return query_all(
+            "SELECT id, name, event_date, event_type FROM events "
+            "WHERE is_deleted = FALSE ORDER BY event_date, name"
+        )
+    return query_all(
+        "SELECT id, name, event_date, event_type FROM events "
+        "WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name",
+        (session["user_id"],),
+    )
+
+
 def file_record(file_id, include_deleted=False):
     deleted_condition = "" if include_deleted else " AND files.is_deleted = FALSE"
     return query_one(
@@ -2183,16 +2197,7 @@ def settings():
                 "SELECT COUNT(*) AS folder_count FROM folders WHERE user_id = %s AND is_deleted = FALSE",
                 (user_id,),
             )
-        sidebar_cursor = get_db().cursor(dictionary=True)
-        try:
-            sidebar_cursor.execute(
-                "SELECT id, name, event_date, event_type FROM events "
-                "WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name",
-                (user_id,),
-            )
-            sidebar_events = sidebar_cursor.fetchall()
-        finally:
-            sidebar_cursor.close()
+        sidebar_events = authenticated_sidebar_events()
         try:
             available_storage = shutil.disk_usage(UPLOAD_FOLDER).free
         except OSError:
@@ -2248,11 +2253,7 @@ def audit_trail():
             "ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s",
             (page_size, (page - 1) * page_size),
         )
-        sidebar_events = query_all(
-            "SELECT id, name, event_date, event_type FROM events "
-            "WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name",
-            (session.get("user_id", session.get("principal_id")),),
-        )
+        sidebar_events = authenticated_sidebar_events()
         storage = query_one("SELECT COALESCE(SUM(file_size), 0) AS used FROM files WHERE is_deleted = FALSE", ())
     except MySQLError:
         app.logger.exception("Audit trail database error")
@@ -2298,11 +2299,7 @@ def super_admin_dashboard():
             "FROM users",
             (),
         )
-        sidebar_events = query_all(
-            "SELECT id, name, event_date, event_type FROM events "
-            "WHERE user_id = %s AND is_deleted = FALSE ORDER BY event_date, name",
-            (session.get("user_id", session.get("principal_id")),),
-        )
+        sidebar_events = authenticated_sidebar_events()
         storage = query_one("SELECT COALESCE(SUM(file_size), 0) AS used FROM files WHERE is_deleted = FALSE", ())
     except MySQLError:
         app.logger.exception("Super Admin dashboard database error")
