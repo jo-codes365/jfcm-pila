@@ -3693,7 +3693,7 @@ body[data-theme="dark"] .preview-page::before {
   gap: 28px;
 }
 .workspace-skeleton-presentation {
-  width: 75%;
+  width: 55%;
 }
 .workspace-skeleton-presentation-header {
   min-height: 42px;
@@ -4628,7 +4628,7 @@ button {
   transform: translate(-50%, -50%);
 }
 .folder-content-card--presentation {
-  width: 75%;
+  width: 55%;
   border-radius: 0;
   background: transparent;
 }
