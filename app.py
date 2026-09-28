@@ -312,6 +312,7 @@ def login_required(view):
             session.clear()
             abort(403)
         g.is_super_admin = current_role["role"] == "super-admin"
+        g.is_admin = current_role["role"] in {"admin", "super-admin"}
         g.principal_id = principal_id
         if current_role["role"] == "super-admin":
             selected_owner = query_one("SELECT id FROM users WHERE id = %s", (session.get("user_id"),))
@@ -359,6 +360,7 @@ def login_or_public_link_required(view):
                     abort(403)
                 return view(*args, **kwargs)
             g.is_super_admin = principal["role"] == "super-admin"
+            g.is_admin = principal["role"] in {"admin", "super-admin"}
             g.principal_id = principal_id
             touch_authenticated_session()
             purge_expired_trash(session["user_id"])
@@ -456,9 +458,26 @@ def is_super_admin_principal():
     return g.is_super_admin
 
 
+def is_admin_principal():
+    if hasattr(g, "is_admin"):
+        return g.is_admin
+    principal_id = session.get("principal_id", session.get("user_id"))
+    if not principal_id:
+        return False
+    principal = query_one("SELECT role, is_active FROM users WHERE id = %s", (principal_id,))
+    g.is_admin = bool(principal and principal.get("is_active") and principal.get("role") in {"admin", "super-admin"})
+    g.principal_id = principal_id
+    return g.is_admin
+
+
+def workspace_owner_scope():
+    """Return an owner filter for workspace reads, or None for admins."""
+    return None if is_admin_principal() else session["user_id"]
+
+
 def authenticated_sidebar_events():
     """Return the Event links visible to the signed-in principal."""
-    if is_super_admin_principal():
+    if is_admin_principal():
         return query_all(
             "SELECT id, name, event_date, event_type FROM events "
             "WHERE is_deleted = FALSE ORDER BY event_date, name"
@@ -704,7 +723,7 @@ def accessible_event(event_id, require_owner=False, share_context=None, include_
     event = event_record(event_id, include_deleted=include_deleted)
     if not event:
         return None
-    if session.get("user_id") and (is_super_admin_principal() or event["user_id"] == session["user_id"]):
+    if session.get("user_id") and (is_admin_principal() or event["user_id"] == session["user_id"]):
         return {**event, "can_edit": True, "access_via": "owner"}
     if require_owner:
         return None
@@ -718,7 +737,7 @@ def accessible_folder(folder_id, require_owner=False, share_context=None, includ
     folder = folder_record(folder_id, include_deleted=include_deleted)
     if not folder:
         return None
-    if session.get("user_id") and (is_super_admin_principal() or folder["user_id"] == session["user_id"]):
+    if session.get("user_id") and (is_admin_principal() or folder["user_id"] == session["user_id"]):
         return {**folder, "can_edit": True, "access_via": "owner"}
     if require_owner:
         return None
@@ -735,7 +754,7 @@ def accessible_file(file_id, require_owner=False, share_context=None):
     record = file_record(file_id)
     if not record:
         return None
-    if session.get("user_id") and (is_super_admin_principal() or record["user_id"] == session["user_id"]):
+    if session.get("user_id") and (is_admin_principal() or record["user_id"] == session["user_id"]):
         return {**record, "can_edit": True, "access_via": "owner"}
     if require_owner:
         return None
@@ -2612,8 +2631,8 @@ def dashboard():
     except ValueError:
         selected_event_date = None
     is_event_date_workspace = section == "events" and event_id is None and selected_event_date is not None
-    super_admin_workspace = super_admin_principal
-    owner_scope_id = None if super_admin_workspace else session["user_id"]
+    admin_workspace = is_admin_principal()
+    owner_scope_id = workspace_owner_scope()
 
     def dashboard_url_with_updates(**updates):
         params = dict(request.args.items())
@@ -2636,14 +2655,14 @@ def dashboard():
         if event_id is not None:
             if section != "events":
                 abort(400)
-            current_event = owned_event(event_id)
+            current_event = accessible_event(event_id)
             if not current_event:
                 abort(404)
             owner_scope_id = current_event["user_id"]
         if folder_id is not None:
             if section not in {"files", "events"}:
                 abort(400)
-            current_folder = owned_folder(folder_id)
+            current_folder = accessible_folder(folder_id)
             if (
                 not current_folder
                 or (section == "events" and current_folder["event_id"] != event_id)
@@ -2662,7 +2681,7 @@ def dashboard():
                 if section != "events" and node.get("event_id") is not None:
                     abort(404)
                 breadcrumbs.append(node)
-                node = owned_folder(node["parent_id"]) if node["parent_id"] else None
+                node = accessible_folder(node["parent_id"]) if node["parent_id"] else None
             breadcrumbs.reverse()
         cursor = get_db().cursor(dictionary=True)
         if owner_scope_id is None:
@@ -2803,7 +2822,7 @@ def dashboard():
         else:
             cursor.execute("SELECT id, name, parent_id FROM folders WHERE user_id = %s AND event_id IS NULL", (owner_scope_id,))
         paths = folder_paths(cursor.fetchall())
-        if owner_scope_id is None and super_admin_workspace:
+        if owner_scope_id is None and admin_workspace and super_admin_principal:
             admin_owner_ids = query_all("SELECT id, username FROM users ORDER BY id")
             move_destinations = []
             for owner in admin_owner_ids:
@@ -2935,19 +2954,19 @@ def search_suggestions():
         abort(404)
 
     deleted = section == "trash"
-    owner_id = None if is_super_admin_principal() else session["user_id"]
+    owner_id = workspace_owner_scope()
     current_event = None
     if event_id is not None:
         if section != "events":
             abort(400)
-        current_event = owned_event(event_id)
+        current_event = accessible_event(event_id)
         if not current_event:
             abort(404)
         owner_id = current_event["user_id"]
 
     folder_scope = []
     if folder_id is not None:
-        current_folder = owned_folder(folder_id, include_deleted=deleted)
+        current_folder = accessible_folder(folder_id, include_deleted=deleted)
         if (
             not current_folder
             or (section == "events" and current_folder.get("event_id") != event_id)
@@ -2955,7 +2974,7 @@ def search_suggestions():
         ):
             abort(404)
         owner_id = current_folder["user_id"]
-        folder_scope = [folder_id, *folder_descendants(folder_id)]
+        folder_scope = [folder_id, *folder_descendants(folder_id, owner_id=current_folder["user_id"])]
 
     search_term = f"%{query}%"
     scoped_owner_sql = "" if owner_id is None else "user_id = %s AND "

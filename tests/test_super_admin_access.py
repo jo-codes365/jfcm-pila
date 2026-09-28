@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import app as library
+from flask import Response
 
 
 class SuperAdminAccessTests(unittest.TestCase):
@@ -13,6 +14,7 @@ class SuperAdminAccessTests(unittest.TestCase):
             2: {"role": "admin", "is_active": True},
             3: {"role": None, "is_active": True},
             4: {"role": "admin", "is_active": False},
+            5: {"role": None, "is_active": True},
         }
         self.query_patch = patch.object(library, "query_one", side_effect=self.query_one)
         self.query_patch.start()
@@ -96,6 +98,57 @@ class SuperAdminAccessTests(unittest.TestCase):
             "return_to_settings": "1",
         })
         self.assertEqual(response.status_code, 302)
+
+    def test_admin_search_lists_files_across_workspaces(self):
+        self.set_identity(2)
+        cursor = unittest.mock.Mock()
+        cursor.fetchall.side_effect = [[], [{
+            "id": 42,
+            "original_filename": "report.pdf",
+            "folder_id": None,
+            "mime_type": "application/pdf",
+        }], []]
+        connection = unittest.mock.Mock()
+        connection.cursor.return_value = cursor
+        with patch.object(library, "get_db", return_value=connection):
+            response = self.client.get("/search-suggestions?q=report")
+        self.assertEqual(response.status_code, 200)
+        file_query = next(call.args[0] for call in cursor.execute.call_args_list if "FROM files" in call.args[0])
+        self.assertNotIn("user_id = %s", file_query)
+        self.assertEqual(response.json["suggestions"][0]["name"], "report.pdf")
+
+    def test_regular_user_search_stays_in_their_workspace(self):
+        with library.app.test_request_context("/search-suggestions?q=report"):
+            library.session["user_id"] = 5
+            library.g.is_admin = False
+            self.assertEqual(library.workspace_owner_scope(), 5)
+
+    def test_admin_can_download_another_users_file_by_id(self):
+        self.set_identity(2)
+        record = {"id": 42, "user_id": 99, "stored_filename": "stored.pdf", "original_filename": "report.pdf"}
+        with patch.object(library, "file_record", return_value=record), \
+             patch.object(library, "record_path", return_value=library.Path("/mock/report.pdf")), \
+             patch.object(library.Path, "is_file", return_value=True), \
+             patch.object(library, "send_from_directory", return_value=Response("download")), \
+             patch.object(library, "record_audit_action"):
+            response = self.client.get("/download/42")
+        self.assertEqual(response.status_code, 200)
+
+    def test_regular_user_cannot_download_another_users_file_by_id(self):
+        record = {"id": 42, "user_id": 99, "stored_filename": "stored.pdf", "original_filename": "report.pdf"}
+        with library.app.test_request_context("/download/42"):
+            library.session["user_id"] = 5
+            library.g.is_admin = False
+            with patch.object(library, "file_record", return_value=record):
+                self.assertIsNone(library.accessible_file(42))
+
+    def test_workspace_member_can_download_their_file_by_id(self):
+        record = {"id": 42, "user_id": 5, "stored_filename": "stored.pdf", "original_filename": "report.pdf"}
+        with library.app.test_request_context("/download/42"):
+            library.session["user_id"] = 5
+            library.g.is_admin = False
+            with patch.object(library, "file_record", return_value=record):
+                self.assertIsNotNone(library.accessible_file(42))
 
 
 if __name__ == "__main__":
