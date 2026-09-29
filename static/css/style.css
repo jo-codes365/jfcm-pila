@@ -4843,6 +4843,9 @@ body.presentation-fullscreen-fallback-active {
   .file-workspace.mobile-select-mode .folder-content-card .card-item-select { display: block; }
 }
 @media (max-width: 480px) {
+  .folder-workspace .folder-image-grid .folder-content-card--image {
+    padding-top: 0;
+  }
   .folder-image-grid,
   .folder-carousel-track {
     display: grid;
@@ -5856,21 +5859,84 @@ hr {
 }
 
 @media (max-width: 480px) {
-  .settings-workspace-content:has(.admin-users-table) {
+  .auth-page:has(.admin-users-table) {
+    min-width: 0;
+    padding: 10px;
+    overflow-x: hidden;
+  }
+  .auth-page:has(.admin-users-table) .auth-card {
     min-width: 0;
     max-width: 100%;
+    padding: 14px 10px;
     overflow-x: hidden;
   }
   .admin-users-table-wrap {
     width: 100%;
     max-width: 100%;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-x: contain;
   }
-  .admin-users-table { min-width: 1100px; }
-  .audit-trail-table-wrap { width: 100%; overflow-x: auto; overflow-y: auto; }
-  .audit-trail-table { min-width: 720px; }
+  .admin-users-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+  .admin-users-table th,
+  .admin-users-table td {
+    padding: 5px 3px;
+    font-size: .58rem;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+  }
+  .admin-users-table th { vertical-align: bottom; }
+  .admin-users-table th:nth-child(1), .admin-users-table td:nth-child(1) { width: 11%; }
+  .admin-users-table th:nth-child(2), .admin-users-table td:nth-child(2) { width: 16%; }
+  .admin-users-table th:nth-child(3), .admin-users-table td:nth-child(3) { width: 8%; }
+  .admin-users-table th:nth-child(4), .admin-users-table td:nth-child(4) { width: 13%; }
+  .admin-users-table th:nth-child(5), .admin-users-table td:nth-child(5) { width: 13%; }
+  .admin-users-table th:nth-child(6), .admin-users-table td:nth-child(6) { width: 7%; }
+  .admin-users-table th:nth-child(7), .admin-users-table td:nth-child(7) { width: 7%; }
+  .admin-users-table th:nth-child(8), .admin-users-table td:nth-child(8) { width: 25%; }
+  .admin-user-actions { white-space: normal; }
+  .admin-user-actions form { min-width: 0; margin: 0 0 3px; }
+  .admin-user-actions button,
+  .admin-user-actions select {
+    width: 100%;
+    min-width: 0;
+    padding: 3px 2px;
+    font-size: .55rem;
+    line-height: 1.15;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .admin-user-actions label { font-size: .52rem; }
+  .admin-users-table i { font-size: .75rem; }
+  .audit-trail-table-wrap { width: 100%; max-width: 100%; overflow-x: hidden; overflow-y: auto; }
+  .audit-trail-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+  .audit-trail-table thead { display: table-header-group; }
+  .audit-trail-table tbody { display: table-row-group; }
+  .audit-trail-table tr { display: table-row; padding: 0; }
+  .audit-trail-table td { display: table-cell; text-align: left; }
+  .audit-trail-table th,
+  .audit-trail-table td {
+    padding: 5px 4px;
+    font-size: .65rem;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .audit-trail-table th { overflow-wrap: anywhere; }
+  .audit-trail-table th:nth-child(1), .audit-trail-table td:nth-child(1) { width: 28%; }
+  .audit-trail-table th:nth-child(2), .audit-trail-table td:nth-child(2) { width: 20%; }
+  .audit-trail-table th:nth-child(3), .audit-trail-table td:nth-child(3) { width: 24%; }
+  .audit-trail-table th:nth-child(4), .audit-trail-table td:nth-child(4) { width: 28%; }
 }
 
 /* Create User modal in Super Admin Settings */
