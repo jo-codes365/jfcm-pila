@@ -18,12 +18,12 @@
       {% for day in week %}
       <div class="events-calendar-day{% if is_first_week %} is-first-week{% endif %}{% if not day %} is-empty{% endif %}">
         {% if day %}
-        <a class="events-calendar-day-link" href="{{ calendar_day_urls.get(day, '#') }}" aria-label="Open {{ month_name }} {{ day }}, {{ year }}">
-          <span>{{ day }}</span>
-        </a>
+        <span class="events-calendar-day-number">{{ day }}</span>
+        <div class="events-calendar-events">
         {% for event in events_by_day.get(day, []) %}
         <a class="events-calendar-event-link" href="{{ url_for('dashboard', section='events', event=event.id) }}" aria-label="Open Event: {{ format_item_label(event.name) }}" title="{{ format_item_label(event.name) }}"><img class="event-icon-inline" src="{{ url_for('static', filename='images/' ~ event_icon_file(event.event_type)) }}" alt=""></a>
         {% endfor %}
+        </div>
         {% endif %}
       </div>
       {% endfor %}

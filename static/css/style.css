@@ -3023,32 +3023,29 @@ body[data-theme="dark"] .preview-page::before {
   align-content: center;
   gap: 4px;
 }
-.events-calendar-day-link,
 .events-calendar-day a {
   display: block;
 }
-.events-calendar-day-link {
+.events-calendar-day-number {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: max-content;
-  height: max-content;
-  padding: 12px;
+  top: 12px;
+  left: 12px;
   font-weight: 700;
-  margin-bottom: 0;
-  z-index: 5;
+  z-index: 1;
 }
-.events-calendar-day-link span {
-  display: block;
-}
-.events-calendar-day-link:hover {
-  background: #edfcf0;
-  color: var(--primary-dark);
-  
+.events-calendar-events {
+  position: relative;
+  z-index: 99;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 .events-calendar-day .events-calendar-event-link {
   position: relative;
-  z-index: 6;
+  z-index: 99;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -6097,7 +6094,6 @@ body[data-theme="dark"] table tbody tr:hover { background-color: #202020; }
 body[data-theme="dark"] .events-calendar-grid,
 body[data-theme="dark"] .events-calendar-day { background-color: #111; }
 body[data-theme="dark"] .events-calendar-grid > strong { background-color: #202020; }
-body[data-theme="dark"] .events-calendar-day-link:hover { color: #f2f2f2; background-color: #252525; }
 body[data-theme="dark"] .events-calendar-button,
 body[data-theme="dark"] .events-calendar-modal .events-calendar-month-button,
 body[data-theme="dark"] .events-calendar-modal .close-button {
@@ -6386,7 +6382,6 @@ body[data-theme="dark"] .events-calendar-modal :is(.events-calendar-month-button
   body[data-theme="system"] .events-calendar-grid,
   body[data-theme="system"] .events-calendar-day { background-color: #111; }
   body[data-theme="system"] .events-calendar-grid > strong { background-color: #202020; }
-  body[data-theme="system"] .events-calendar-day-link:hover { color: #f2f2f2; background-color: #252525; }
   body[data-theme="system"] .events-calendar-button,
   body[data-theme="system"] .events-calendar-modal .events-calendar-month-button,
   body[data-theme="system"] .events-calendar-modal .close-button {
