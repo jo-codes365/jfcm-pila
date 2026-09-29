@@ -3141,6 +3141,11 @@ document.addEventListener("DOMContentLoaded", function () {
       ? "Done"
       : '<i class="bi bi-check2-square" aria-hidden="true"></i> Select';
     if (!enabled) {
+      document.querySelectorAll(".folder-content-section.mobile-section-select-mode").forEach(function (section) {
+        section.classList.remove("mobile-section-select-mode");
+        var sectionButton = section.querySelector(".mobile-section-select");
+        if (sectionButton) sectionButton.setAttribute("aria-pressed", "false");
+      });
       itemSelections.forEach(function (input) { input.checked = false; });
       updateBulkToolbar();
     }
@@ -3209,12 +3214,25 @@ document.addEventListener("DOMContentLoaded", function () {
     updateBulkToolbar();
   });
   document.addEventListener("click", function (event) {
+    var sectionSelectButton = event.target.closest(".mobile-section-select");
+    if (sectionSelectButton) {
+      var section = sectionSelectButton.closest(".folder-content-section");
+      if (!section) return;
+      var enabled = sectionSelectButton.getAttribute("aria-pressed") !== "true";
+      section.classList.toggle("mobile-section-select-mode", enabled);
+      sectionSelectButton.setAttribute("aria-pressed", String(enabled));
+      section.querySelectorAll(".item-select").forEach(function (input) {
+        if (!enabled) input.checked = false;
+      });
+      updateBulkToolbar();
+      return;
+    }
     var selectButton = event.target.closest("#mobile-select-button");
     if (!selectButton) return;
     setMobileSelectMode(selectButton.getAttribute("aria-pressed") !== "true");
   });
   document.addEventListener("click", function (event) {
-    var row = event.target.closest(".file-workspace.mobile-select-mode .workspace-item, .file-workspace.mobile-select-mode .file-table tbody tr");
+    var row = event.target.closest(".file-workspace.mobile-select-mode .workspace-item, .file-workspace.mobile-select-mode .file-table tbody tr, .folder-content-section.mobile-section-select-mode .workspace-item, .folder-content-section.mobile-section-select-mode .file-table tbody tr");
     if (!row || event.target.closest("button, input, label, select, textarea, .actions")) return;
     var selection = row.querySelector(".item-select");
     if (!selection) return;
