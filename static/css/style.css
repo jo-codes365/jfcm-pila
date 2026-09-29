@@ -3064,8 +3064,10 @@ body[data-theme="dark"] .preview-page::before {
 }
 .events-calendar-day .events-calendar-event-link {
   flex: 0 0 auto;
+  align-self: center;
+  justify-self: center;
   padding: 0;
-  z-index: 6;
+  z-index: 99;
 }
 .event-date-fixed {
   margin: 0;
