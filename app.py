@@ -962,6 +962,20 @@ def sunday_first_month_weeks(year, month):
     return calendar_module.Calendar(firstweekday=calendar_module.SUNDAY).monthdayscalendar(year, month)
 
 
+def calendar_event_date_key(event_date):
+    """Normalize a stored Event date to its calendar date without timezone conversion."""
+    if isinstance(event_date, datetime):
+        return event_date.date().isoformat()
+    if isinstance(event_date, date):
+        return event_date.isoformat()
+    if event_date is None:
+        return None
+    try:
+        return date.fromisoformat(str(event_date).strip()[:10]).isoformat()
+    except ValueError:
+        return None
+
+
 DATE_GROUP_LABELS = (
     "Today",
     "Last week",
@@ -1021,9 +1035,11 @@ def build_events_calendar_context(year=None, month=None, url_builder=None):
         events = []
     finally:
         cursor.close()
-    events_by_day = {}
+    events_by_date = {}
     for event in events:
-        events_by_day.setdefault(event["event_date"].day, []).append(event)
+        event_date_key = calendar_event_date_key(event.get("event_date"))
+        if event_date_key:
+            events_by_date.setdefault(event_date_key, []).append(event)
     previous_year, previous_month = shift_calendar_month(year, month, -1)
     next_year, next_month = shift_calendar_month(year, month, 1)
     weeks = sunday_first_month_weeks(year, month)
@@ -1038,7 +1054,7 @@ def build_events_calendar_context(year=None, month=None, url_builder=None):
         "year": year,
         "month": month,
         "weeks": weeks,
-        "events_by_day": events_by_day,
+        "events_by_date": events_by_date,
         "calendar_previous_url": url_builder(calendar="open", calendar_year=previous_year, calendar_month=previous_month) if url_builder else None,
         "calendar_next_url": url_builder(calendar="open", calendar_year=next_year, calendar_month=next_month) if url_builder else None,
         "calendar_day_urls": day_urls,
@@ -2933,7 +2949,7 @@ def dashboard():
             year=calendar_year,
             month=calendar_month,
             weeks=sunday_first_month_weeks(calendar_year, calendar_month),
-            events_by_day={},
+            events_by_date={},
             calendar_previous_url=url_for("dashboard", calendar="open", calendar_year=shift_calendar_month(calendar_year, calendar_month, -1)[0], calendar_month=shift_calendar_month(calendar_year, calendar_month, -1)[1]),
             calendar_next_url=url_for("dashboard", calendar="open", calendar_year=shift_calendar_month(calendar_year, calendar_month, 1)[0], calendar_month=shift_calendar_month(calendar_year, calendar_month, 1)[1]),
             calendar_day_urls={},
@@ -3167,7 +3183,7 @@ def public_events():
         calendar_auto_open=False, is_global_search=False, is_shared_workspace=False, is_public_workspace=True,
         workspace_can_edit=False, share_context=None, public_workspace_kind="events",
         month_name=calendar_module.month_name[date.today().month], year=date.today().year, month=date.today().month,
-        weeks=sunday_first_month_weeks(date.today().year, date.today().month), events_by_day={}, calendar_day_urls={},
+        weeks=sunday_first_month_weeks(date.today().year, date.today().month), events_by_date={}, calendar_day_urls={},
         calendar_previous_url="", calendar_next_url="", show_calendar_back_link=False,
     )
 
@@ -3296,7 +3312,7 @@ def public_dashboard():
         calendar_auto_open=False, is_global_search=False, is_shared_workspace=False, is_public_workspace=True,
         workspace_can_edit=False, share_context=None, public_workspace_kind="files",
         month_name=calendar_module.month_name[date.today().month], year=date.today().year, month=date.today().month,
-        weeks=sunday_first_month_weeks(date.today().year, date.today().month), events_by_day={}, calendar_day_urls={},
+        weeks=sunday_first_month_weeks(date.today().year, date.today().month), events_by_date={}, calendar_day_urls={},
         calendar_previous_url="", calendar_next_url="", show_calendar_back_link=False,
         date_grouped_file_list=group_file_list_by_date(items),
         today=current_date,
@@ -4934,7 +4950,7 @@ def render_public_event_workspace(event_id, share_context):
         year=date.today().year,
         month=date.today().month,
         weeks=sunday_first_month_weeks(date.today().year, date.today().month),
-        events_by_day={},
+        events_by_date={},
         calendar_previous_url=None,
         calendar_next_url=None,
         calendar_day_urls={},
