@@ -79,7 +79,7 @@
       {% if not g.is_super_admin|default(false) %}
       <div class="storage-summary">
         <span>Storage used</span>
-        <strong>{{ readable_size(total_storage) }}</strong>
+        <strong>{% if (total_storage or 0)|int == 0 %}—{% else %}{{ readable_size(total_storage) }}{% endif %}</strong>
       </div>
       {% endif %}
       {% if g.is_super_admin|default(false) %}<a class="sidebar-link {% if section == 'audit-trail' %}active{% endif %}" href="{{ url_for('audit_trail') }}"><i class="bi bi-journal-text"></i> Audit Trail</a>{% endif %}

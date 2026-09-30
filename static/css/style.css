@@ -6548,3 +6548,12 @@ body[data-theme="dark"] .settings-section[aria-labelledby="appearance-settings-t
   body[data-theme="system"] .presentation-fullscreen-controls button :is(i, svg) { color: #f2f2f2 !important; }
   body[data-theme="system"] .settings-section[aria-labelledby="appearance-settings-title"] .theme-options input:checked + span { color: #111 !important; background: #91D9A4; }
 }
+
+/* Keep the selected appearance option legible in every theme. */
+.settings-section[aria-labelledby="appearance-settings-title"] .theme-options input:checked + span {
+  color: #111 !important;
+  background: #91D9A4 !important;
+}
+.settings-section[aria-labelledby="appearance-settings-title"] .theme-options input:checked + span i {
+  color: #111 !important;
+}

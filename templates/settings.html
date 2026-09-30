@@ -42,7 +42,7 @@
                   <td>{{ user.email or '—' }}</td>
                   <td>{{ user.role or 'Public Viewer' }}</td>
                   <td>{{ 'Active' if user.is_active else 'Deactivated' }}</td>
-                  <td>{{ readable_size(user.storage_used or 0) }}</td>
+                  <td>{% if (user.storage_used or 0)|int == 0 %}—{% else %}{{ readable_size(user.storage_used) }}{% endif %}</td>
                 <td class="actions admin-user-actions">
                   <div class="actions2">
                   <form method="post" action="{{ url_for('select_user_workspace', user_id=user.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="row-action" type="submit" aria-label="Manage files for {{ user.username }}" title="Manage Files"><i class="bi bi-file-earmark-arrow-up" aria-hidden="true"></i></button></form>
