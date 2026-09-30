@@ -6557,3 +6557,48 @@ body[data-theme="dark"] .settings-section[aria-labelledby="appearance-settings-t
 .settings-section[aria-labelledby="appearance-settings-title"] .theme-options input:checked + span i {
   color: #111 !important;
 }
+
+/* Destructive controls keep their red palette on hover in every theme. */
+.button.danger:hover,
+.danger:hover {
+  color: #fff !important;
+  background-color: #a62121 !important;
+}
+.button.danger:hover :is(i, svg, span),
+.danger:hover :is(i, svg, span) {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+.danger-action:hover,
+.bulk-danger-action:hover,
+.norms#delete-item:hover,
+.norms#permanent-delete-item:hover,
+.norms.delete-button:hover,
+.norms.delete-trigger:hover,
+.preview-more-menu .delete-trigger:hover,
+.item-actions-list .bulk-danger-action:hover {
+  color: var(--danger-dark) !important;
+  background-color: #ffe6e6 !important;
+}
+.danger-action:hover :is(i, svg),
+.bulk-danger-action:hover :is(i, svg),
+.norms#delete-item:hover :is(i, svg),
+.norms#permanent-delete-item:hover :is(i, svg),
+.norms.delete-button:hover :is(i, svg),
+.norms.delete-trigger:hover :is(i, svg),
+.preview-more-menu .delete-trigger:hover :is(i, svg),
+.item-actions-list .bulk-danger-action:hover :is(i, svg) {
+  color: inherit !important;
+}
+.trash:hover {
+  color: var(--danger-dark) !important;
+  background-color: #ffe6e6 !important;
+}
+#empty-trash-button:hover {
+  color: #111 !important;
+  background-color: #ff8c8c !important;
+}
+#empty-trash-button:hover :is(i, svg, span) {
+  color: #111 !important;
+  background-color: transparent !important;
+}
